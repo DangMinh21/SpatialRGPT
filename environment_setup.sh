@@ -41,6 +41,9 @@ bash Miniconda3-latest-Linux-x86_64.sh
 source /root/miniconda3/etc/profile.d/conda.sh
 command -v conda
 
+# Load conda into current shell
+source /root/miniconda3/etc/profile.d/conda.sh
+
 # This is required to activate conda environment in scripts
 eval "$(conda shell.bash hook)"
 
