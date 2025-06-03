@@ -2224,6 +2224,12 @@ def build_datasets(
             dataset_cls = DummyDataset
             if hasattr(dataset, "image_path"):
                 image_folder = dataset.image_path
+        #-------- added aicity_dataset -----------
+        elif dataset_type == "aicity_spatial": # New type for our dataset
+            from llava.data.aicity_dataset import AICityLazySpatialDataset 
+            dataset_cls = AICityLazySpatialDataset
+            image_folder = dataset.image_path # This will be rgb_image_folder
+        #-----------------------------------------
         else:
             raise NotImplementedError(f"{dataset_type} is not supported.")
         data_args.meta_path = getattr(dataset, "meta_path", None)

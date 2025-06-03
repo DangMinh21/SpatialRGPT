@@ -64,3 +64,24 @@ def register_datasets_mixtures():
         description="900K SFT data by SpatialRGPT (submission) w/ depth (template+LLaMa rephrased).",
     )
     add_dataset(spatialrgpt_ft)
+    
+    aicity_sft_train = Dataset(
+        dataset_name="aicity_spatial_train",
+        dataset_type="aicity_spatial",
+        data_path="PhysicalAI-Spatial-Intelligence-Warehouse/formatted_dataset/train_aicity_srgpt.jsonl",
+        image_path="PhysicalAI-Spatial-Intelligence-Warehouse/train_sample/images",
+        depth_path="PhysicalAI-Spatial-Intelligence-Warehouse/train_sample/depths",
+        description="This is the Dataset of training data for Warehouse Spatial Intelligence"
+    )
+    add_dataset(aicity_sft_train)
+    
+    aicity_sft_val = Dataset(
+        dataset_name="aicity_spatial_val",
+        dataset_type="aicity_spatial",
+        data_path="PhysicalAI-Spatial-Intelligence-Warehouse/formatted_dataset/val_aicity_srgpt.jsonl",
+        image_path="PhysicalAI-Spatial-Intelligence-Warehouse/val/images",
+        depth_path="PhysicalAI-Spatial-Intelligence-Warehouse/val/depths",
+        description="This is the Dataset of Validation data for Warehouse Spatial Intelligence"
+    )
+    
+    add_dataset(aicity_sft_val)

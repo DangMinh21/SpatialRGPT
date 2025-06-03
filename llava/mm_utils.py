@@ -284,9 +284,10 @@ def process_masks(sources, data_args, image_info=None):
     mask_processer.do_convert_rgb = False
     mask_processer.rescale_factor = 1.0
 
-    modality_list = ["rle", "segmentation", "bbox"]
-    modality_list = [_ for _ in modality_list if _ in sources[0].keys()]
-    modality = random.choice(modality_list)
+    # modality_list = ["rle", "segmentation", "bbox"]
+    # modality_list = [_ for _ in modality_list if _ in sources[0].keys()]
+    # modality = random.choice(modality_list)
+    modality = "rle"
 
     # check crop size
     if data_args.image_aspect_ratio == "resize":
