@@ -381,19 +381,12 @@ def process_depth(depth_file, data_args, depth_folder):
     if isinstance(depth_file, str):
         if depth_folder is not None:
             print(f"Read depth image sussessfull")
-            depth = Image.open(os.path.join(depth_folder, depth_file))
+            depth = Image.open(os.path.join(depth_folder, depth_file)).convert('RGB')
         else:
-            depth = Image.open(depth_file)
+            depth = Image.open(depth_file).convert('RGB')
     else:
         # image is stored in bytearray
         depth = depth_file
-    # ---- add -----
-    # Ensure depth_pil is in a known mode before padding or processing
-    if depth.mode not in ['L', 'RGB']:
-        print(f"Depth image {depth_file if isinstance(depth_file, str) else 'PIL object'} "
-              f"loaded with mode {depth.mode}. Converting to 'L'.")
-        depth = depth.convert('L')
-    # --------------
 
     # assume depth is already normalized durring dataset preprocessing
     if data_args.image_aspect_ratio == "resize":
