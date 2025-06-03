@@ -15,9 +15,49 @@ from transformers import PreTrainedTokenizer
 # Assuming these are accessible from the SpatialRGPT/VILA environment
 from llava.constants import DEFAULT_IMAGE_TOKEN # IMAGE_TOKEN_INDEX is used by tokenizer_image_token
 from llava.train.args import DataArguments # Or specific training_args if needed for image_processor access
-from llava.mm_utils import process_image, process_depth, process_masks, preprocess_multimodal
+from llava.mm_utils import process_image, process_depth, process_masks
 # The 'preprocess' function for conversations is also in dataset.py from LLaVA
 from llava.data.dataset import preprocess # Importing from the provided dataset.py
+from llava import conversation as conversation_lib
+from llava.constants import (
+    DEFAULT_IM_END_TOKEN,
+    DEFAULT_IM_START_TOKEN,
+    DEFAULT_IMAGE_TOKEN,
+    IGNORE_INDEX,
+    IMAGE_TOKEN_INDEX,
+)
+
+def preprocess_multimodal(sources, data_args):
+    is_multimodal = data_args.is_multimodal
+    if not is_multimodal:
+        return sources
+
+    for source in sources:
+        concat_values = "".join([sentence["value"] for sentence in source])
+        for sid, sentence in enumerate(source):
+            # In multimodal conversations, we automatically prepend '<image>' at the start of the first sentence if it doesn't already contain one.
+            if sid == 0 and DEFAULT_IMAGE_TOKEN not in concat_values:
+                sentence["value"] = f"{DEFAULT_IMAGE_TOKEN}\n" + sentence["value"]
+            if DEFAULT_IMAGE_TOKEN in sentence["value"]:
+                sentence_chunks = [chunk.strip() for chunk in sentence["value"].split(DEFAULT_IMAGE_TOKEN)]
+                sentence_chunks = [
+                    chunk + " " if not (chunk.endswith("\n")) else chunk for chunk in sentence_chunks[:-1]
+                ] + [sentence_chunks[-1]]
+                sentence["value"] = f"{DEFAULT_IMAGE_TOKEN}\n".join(sentence_chunks).strip()
+
+                replace_token = DEFAULT_IMAGE_TOKEN
+                if "mmtag" in conversation_lib.default_conversation.version:
+                    replace_token = "<Image>" + replace_token + "</Image>"
+                if data_args.mm_use_im_start_end:
+                    replace_token = DEFAULT_IM_START_TOKEN + replace_token + DEFAULT_IM_END_TOKEN
+                sentence["value"] = sentence["value"].replace(DEFAULT_IMAGE_TOKEN, replace_token)
+            # ensure every DEFAULT_IMAGE_TOKEN is followed by a newline character.
+            # If it has one already, we don't add another one.
+            if DEFAULT_IMAGE_TOKEN in sentence["value"]:
+                sentence["value"] = sentence["value"].replace(DEFAULT_IMAGE_TOKEN, f"{DEFAULT_IMAGE_TOKEN}\n")
+                sentence["value"] = sentence["value"].replace(f"{DEFAULT_IMAGE_TOKEN}\n\n", f"{DEFAULT_IMAGE_TOKEN}\n")
+
+    return sources
 
 
 class AICityLazySpatialDataset(Dataset):
