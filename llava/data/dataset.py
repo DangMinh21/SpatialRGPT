@@ -46,7 +46,7 @@ from llava.constants import (
     IMAGE_TOKEN_INDEX,
 )
 from llava.data.datasets_mixture import DATASETS
-from llava.eval.mmmu_utils.data_utils import CAT_SHORT2LONG, construct_prompt, load_yaml, process_single_sample
+from llava.eval.mm_utils.data_utils import CAT_SHORT2LONG, construct_prompt, load_yaml, process_single_sample
 from llava.mm_utils import (
     is_gemma_tokenizer,
     opencv_extract_frames,
