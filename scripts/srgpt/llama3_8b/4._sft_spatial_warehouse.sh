@@ -1,21 +1,75 @@
-export MASTER_ADDR="127.0.0.1"
-export WANDB_PROJECT="AI_City_SpatialRGPT" # Optional for wandb
+#!/bin/bash
 
-# Assuming you are in the cloned SpatialRGPT directory
-# and your prepared AI City dataset JSON is at /path/to/your_data/train_aicity.jsonl
-# and images are in /path/to/your_data/ (with train/images/, train/depths/ subdirs)
+# --- GPU Configuration (Adapt for your RunPod setup) ---
+# For a single A40 GPU on a single node:
+NNODES=1
+NPROC_PER_NODE=1 # Number of GPUs you want to use on this node
+MASTER_PORT=25001 # Or any other free port
 
-torchrun --nnodes=1 --nproc_per_node=8 --master_port=25001 \
-    --master_addr $MASTER_ADDR --node_rank=0 \
+# --- Model and Data Paths (MUST BE SET CORRECTLY on RunPod) ---
+# Path to the downloaded Stage 2 pre-trained model checkpoint
+# This should be the output of a script like '2_pretrain.sh'
+# Example: "./checkpoints/vila-siglip-llama3-8b-vila-v1.5-srgpt-pretrain"
+# Or the Hugging Face ID if it represents this stage accurately.
+# For your previous inference tests, you used "a8cheng/SpatialRGPT-VILA1.5-8B".
+# Ensure this is the correct base for SFT.
+PRETRAINED_MODEL_PATH="a8cheng/SpatialRGPT-VILA1.5-8B" # Or your local path to the stage 2 model
+
+# Name of your AI City dataset mixture defined in datasets_mixture.py
+# This name should point to your processed train_aicity_srgpt.jsonl and related image/depth folders
+AICITY_DATA_MIXTURE_NAME="PSIW_sft_train" # Using the name from your datasets_mixture.py
+
+# Output directory for your AI City fine-tuned model
+OUTPUT_DIR="./checkpoints/spatialrgpt-aicity-sft-A40-run1"
+
+# --- Training Hyperparameters (Adjust for A40 and dataset size) ---
+# Batch size per GPU. A40 has ~40-48GB. 8B model with ZeRO-3.
+# Start very low and increase if memory allows.
+PER_DEVICE_TRAIN_BATCH_SIZE=2 # Start with 1 or 2 for an 8B model on a single A40
+GRADIENT_ACCUMULATION_STEPS=8 # Adjust to get a reasonable effective batch size
+# Effective Batch Size = PER_DEVICE_TRAIN_BATCH_SIZE * NPROC_PER_NODE * GRADIENT_ACCUMULATION_STEPS
+# E.g., 2 * 1 * 8 = 16. (The original 3_sft.sh had effective BS of 256 with 8 GPUs)
+
+NUM_TRAIN_EPOCHS=1 # Fine-tuning on a specific domain might need a few epochs
+LEARNING_RATE=2e-5   # Common SFT learning rate
+
+# Vision Tower (Should match the pre-trained model)
+VISION_TOWER="google/siglip-so400m-patch14-384"
+
+# --- Environment Variables ---
+export WANDB_PROJECT="AI_City_Challenge_SpatialRGPT_FineTune" # Customize for your WandB
+
+# --- Setup for torchrun (single node) ---
+export MASTER_ADDR="127.0.0.1" 
+# For single node, torchrun usually handles RANK and WORLD_SIZE based on nproc_per_node.
+# Explicitly setting for clarity if needed by deeper scripts, but often not required for torchrun single-node.
+# export RANK="0" 
+# export WORLD_SIZE=$NPROC_PER_NODE
+
+echo "Starting Fine-tuning for AI City Challenge on A40..."
+echo "  Number of Nodes: $NNODES"
+echo "  Number of GPUs per Node: $NPROC_PER_NODE"
+echo "  Pre-trained Model Path: $PRETRAINED_MODEL_PATH"
+echo "  Data Mixture: $AICITY_DATA_MIXTURE_NAME"
+echo "  Output Directory: $OUTPUT_DIR"
+echo "  Per Device Batch Size: $PER_DEVICE_TRAIN_BATCH_SIZE"
+echo "  Gradient Accumulation Steps: $GRADIENT_ACCUMULATION_STEPS"
+echo "  Effective Batch Size: $(($PER_DEVICE_TRAIN_BATCH_SIZE * $NPROC_PER_NODE * $GRADIENT_ACCUMULATION_STEPS))"
+echo "  Number of Epochs: $NUM_TRAIN_EPOCHS"
+echo "  Learning Rate: $LEARNING_RATE"
+
+# Ensure output directory exists
+mkdir -p $OUTPUT_DIR
+
+# The main training command using torchrun
+# Ensure you are in the root of the SpatialRGPT cloned directory when running this script
+torchrun --nnodes=$NNODES --nproc_per_node=$NPROC_PER_NODE --master_port=$MASTER_PORT \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
-    --model_name_or_path ./checkpoints/vila-siglip-llama3-8b-vila-v1.5-srgpt-pretrain \ # Path to YOUR downloaded base model
+    --model_name_or_path "$PRETRAINED_MODEL_PATH" \
     --version llama_3 \
-    --data_path /path/to/your_data/train_aicity.jsonl \ # Path to your AI City formatted JSON
-    --image_folder /path/to/your_data/ \             # Base for RGB images
-    --depth_image_folder /path/to/your_data/ \     # Base for Depth images (custom arg you'll add to train.py)
-    --use_rle_masks True \                           # Custom arg for RLE loading (custom arg you'll add to train.py)
-    --vision_tower google/siglip-so400m-patch14-384 \
+    --data_mixture "$AICITY_DATA_MIXTURE_NAME" \
+    --vision_tower "$VISION_TOWER" \
     --mm_vision_select_feature cls_patch \
     --mm_projector mlp_downsample \
     --enable_region True \
@@ -28,129 +82,29 @@ torchrun --nnodes=1 --nproc_per_node=8 --master_port=25001 \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \
-    --image_aspect_ratio pad \ # Or 'resize', ensure consistency with pre-training & model config
+    --image_aspect_ratio resize \
     --bf16 True \
-    --output_dir ./checkpoints/spatialrgpt-aicity-sft-run1 \
-    --num_train_epochs 1 \
-    --per_device_train_batch_size 4 \ # Reduced for potential memory constraints
-    --per_device_eval_batch_size 4 \
-    --gradient_accumulation_steps 4 \ # Increased to maintain effective batch size
+    --output_dir "$OUTPUT_DIR" \
+    --num_train_epochs $NUM_TRAIN_EPOCHS \
+    --per_device_train_batch_size $PER_DEVICE_TRAIN_BATCH_SIZE \
+    --per_device_eval_batch_size 2 \
+    --gradient_accumulation_steps $GRADIENT_ACCUMULATION_STEPS \
     --evaluation_strategy "no" \
+    --eval_steps 10 \
     --save_strategy "steps" \
-    --save_steps 200 \ # Save more frequently initially
+    --save_steps 5 \
     --save_total_limit 2 \
-    --learning_rate 2e-5 \
+    --learning_rate $LEARNING_RATE \
     --weight_decay 0. \
     --warmup_ratio 0.03 \
     --lr_scheduler_type "cosine" \
     --logging_steps 1 \
     --tf32 True \
-    --model_max_length 4096 \
+    --model_max_length 2048 \
     --gradient_checkpointing True \
-    --dataloader_num_workers 4 \ # Adjust based on RunPod vCPUs
+    --dataloader_num_workers 4 \
     --lazy_preprocess True \
-    --vflan_no_system_prompt True \ # From original script, keep if relevant for VILA/LLaMA3 base
-    --report_to wandb # Optional
+    --vflan_no_system_prompt True \
+    --report_to wandb
 
-#  ============ Modified ================
-
-# #!/bin/bash
-
-# # --- RunPod Configuration (Single Node Multi-GPU) ---
-# # MASTER_ADDR will be set by torchrun for single node, or manually for multi-node
-# # MASTER_PORT can be any free port
-# NNODES=1 # Assuming a single RunPod instance
-# NPROC_PER_NODE=1 # Set this to the number of GPUs on your RunPod instance (e.g., 2, 4, 8)
-# MASTER_PORT=25001 # Or any other free port
-
-# # --- Model and Data Paths ---
-# # Path to the downloaded Stage 2 pre-trained model checkpoint
-# # Replace this with the actual path on your RunPod instance
-# PRETRAINED_CHECKPOINT_PATH="checkpoint/SpatialRGPT-VILA1.5-8B" 
-# # Or if using a HF model ID that represents this stage:
-# # PRETRAINED_CHECKPOINT_PATH="a8cheng/SpatialRGPT-VILA1.5-8B" # Ensure this is the STAGE 2 equivalent
-
-# # Name of your AI City dataset mixture defined in datasets_mixture.py
-# AICITY_DATA_MIXTURE_NAME="aicity_sft_train"
-
-# # Output directory for your fine-tuned model
-# OUTPUT_DIR="./checkpoints/spatialrgpt-aicity-sft-run1"
-
-# # --- Training Hyperparameters (Adjust as needed based on GPU memory and experimentation) ---
-# # Batch size per GPU. The original script used 16. This might be too high for an 8B model.
-# # Start low (e.g., 1, 2, or 4) and see if memory allows more.
-# PER_DEVICE_BATCH_SIZE=2
-# GRADIENT_ACCUMULATION_STEPS=4 # Adjust to maintain effective batch size
-# # Effective Batch Size = PER_DEVICE_BATCH_SIZE * NPROC_PER_NODE * GRADIENT_ACCUMULATION_STEPS
-# # Example: 4 * 8 * 4 = 128 (Original was 16 * 8 * 2 = 256)
-
-# NUM_TRAIN_EPOCHS=1 # Start with 1 epoch, can increase later
-# LEARNING_RATE=2e-5
-
-# # --- Ensure an environment variable for WandB project if you use it ---
-# export WANDB_PROJECT="AI_City_Challenge_SpatialRGPT"
-
-# echo "Starting Fine-tuning for AI City Challenge..."
-# echo "Number of Nodes: $NNODES"
-# echo "Number of GPUs per Node: $NPROC_PER_NODE"
-# echo "Pre-trained Model Path: $PRETRAINED_CHECKPOINT_PATH"
-# echo "Data Mixture: $AICITY_DATA_MIXTURE_NAME"
-# echo "Output Directory: $OUTPUT_DIR"
-# echo "Per Device Batch Size: $PER_DEVICE_BATCH_SIZE"
-# echo "Gradient Accumulation Steps: $GRADIENT_ACCUMULATION_STEPS"
-# echo "Effective Batch Size: $(($PER_DEVICE_BATCH_SIZE * $NPROC_PER_NODE * $GRADIENT_ACCUMULATION_STEPS))"
-
-# # Ensure output directory exists
-# mkdir -p $OUTPUT_DIR
-
-# # The main training command (adapted from 3_sft.sh)
-# # Using localhost for MASTER_ADDR for single-node training
-# # torchrun will handle setting MASTER_ADDR for its processes if not set globally for single node
-# # For multi-node, MASTER_ADDR of the rank 0 node is needed.
-# # node_rank is 0 for single node.
-
-# torchrun --nnodes=$NNODES --nproc_per_node=$NPROC_PER_NODE --master_port=$MASTER_PORT \
-#     llava/train/train_mem.py \
-#     --deepspeed ./scripts/zero3.json \
-#     --model_name_or_path $PRETRAINED_CHECKPOINT_PATH \
-#     --version llama_3 \
-#     --data_mixture $AICITY_DATA_MIXTURE_NAME \
-#     --vision_tower google/siglip-so400m-patch14-384 \
-#     --mm_vision_select_feature cls_patch \
-#     --mm_projector mlp_downsample \
-#     --enable_region True \
-#     --enable_depth True \
-#     --region_extractor regiongpt \
-#     --tune_vision_tower True \
-#     --tune_mm_projector True \
-#     --tune_language_model True \
-#     --tune_region_extractor True \
-#     --mm_vision_select_layer -2 \
-#     --mm_use_im_start_end False \
-#     --mm_use_im_patch_token False \
-#     --image_aspect_ratio pad \ # Changed to 'pad' for potentially better region consistency; 'resize' was in original 3_sft.sh. Test what works.
-#     --bf16 True \
-#     --output_dir $OUTPUT_DIR \
-#     --num_train_epochs $NUM_TRAIN_EPOCHS \
-#     --per_device_train_batch_size $PER_DEVICE_BATCH_SIZE \
-#     --per_device_eval_batch_size 4 \ # Eval batch size can be different
-#     --gradient_accumulation_steps $GRADIENT_ACCUMULATION_STEPS \
-#     --evaluation_strategy "no" \ # Set to "steps" if you have a val set and want to eval during training
-#     --eval_steps 200 \ # Example: Evaluate every 200 steps if strategy is "steps"
-#     --save_strategy "steps" \
-#     --save_steps 20 \ # Save checkpoint every X steps
-#     --save_total_limit 2 \ # Keep only the last 2 checkpoints
-#     --learning_rate $LEARNING_RATE \
-#     --weight_decay 0. \
-#     --warmup_ratio 0.03 \
-#     --lr_scheduler_type "cosine" \
-#     --logging_steps 1 \
-#     --tf32 True \
-#     --model_max_length 4096 \
-#     --gradient_checkpointing True \
-#     --dataloader_num_workers 4 \ # Adjust based on your RunPod vCPUs (e.g., 2-4 per GPU)
-#     --lazy_preprocess True \
-#     --vflan_no_system_prompt True \ # Specific to VILA/LLaMA3 template from original script
-#     --report_to wandb # Or "none" if not using Weights & Biases
-
-# echo "Fine-tuning script finished."
+echo "Fine-tuning script for AI City Challenge finished."
