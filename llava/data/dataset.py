@@ -1862,7 +1862,7 @@ class LazySpatialWarehouseDataset(Dataset):
                     self.depth_image_folder
                 )
             except Exception as e:
-                print(f"Process depth happen ERROR at sample {sources['id']} depth file: {depth_file}, get another one...")
+                print(f"Process depth happen ERROR at sample {sources['id']} depth file: {depth_file}, get another one...\nError: {e}")
                 return self.__getitem__(random.randint(0, len(self.list_data_dict)))
 
         # 3. Process Masks (RLE)
