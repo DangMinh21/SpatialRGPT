@@ -46,6 +46,7 @@ from llava.constants import (
     IMAGE_TOKEN_INDEX,
 )
 from llava.data.datasets_mixture import DATASETS
+
 # from llava.eval.mm_utils.data_utils import CAT_SHORT2LONG, construct_prompt, load_yaml, process_single_sample
 from llava.mm_utils import (
     is_gemma_tokenizer,
@@ -128,6 +129,7 @@ def preprocess_multimodal(sources: Sequence[str], data_args: DataArguments) -> D
     if not is_multimodal:
         return sources
 
+    # process each converation: [turn1: dict, turn2: dict]
     for source in sources:
         concat_values = "".join([sentence["value"] for sentence in source])
         for sid, sentence in enumerate(source):
@@ -1761,7 +1763,8 @@ class LazySupervisedSpatialDataset(Dataset):
 
         # process conversations
         source_conversations = preprocess_multimodal(
-            copy.deepcopy([e["conversations"] for e in sources]), self.data_args
+            copy.deepcopy([e["conversations"] for e in sources]),
+            self.data_args
         )
 
         # read depth if enabled
@@ -1788,6 +1791,124 @@ class LazySupervisedSpatialDataset(Dataset):
         data_dict["masks"] = masks
         if self.enable_depth:
             data_dict["depth"] = depth.unsqueeze(0)
+
+        return data_dict
+
+
+class LazySpatialWarehouseDataset(Dataset):
+    def __init__(
+        self,
+        data_path: str,
+        image_folder: str,
+        tokenizer: transformers.PreTrainedTokenizer,
+        data_args: DataArguments,
+        training_args: TrainingArguments,
+    ):
+        super().__init__()
+
+        logging.warning(f"Loading Spatial Warehouse Dataset from {data_path}")
+        if data_args.depth_path is not None:
+            print("Spatial Warehouse Enabled")
+            self.enable_depth = True
+            self.depth_image_folder = data_args.depth_path
+        else:
+            print("Spatial Warehouse Disable")
+            self.enable_depth = False
+            self.depth_folder = None
+
+        try:
+            with open(data_path, "r") as f:
+                print("Load dataset from -> line <- json")
+                self.list_data_dict = [json.loads(line) for line in f]
+        except json.JSONDecodeError:  # If it's a plain JSON list and not JSONL
+            print("Load dataset from -> plain <- json")
+            with open(data_path, "r") as f:
+                self.list_data_dict = json.load(f)
+
+        print("Total SpatialWarehouse Samples ", len(self.list_data_dict), "load from: ", data_path)
+        logging.warning("Formatting inputs...Skip in lazy mode")
+
+        self.tokenizer = tokenizer
+        self.data_args = data_args
+        self.rgb_image_folder = image_folder
+
+    def __len__(self):
+        return len(self.list_data_dict)
+
+    def __getitem__(self, i):
+
+        assert isinstance(i, int), "Just get one sample, index must be interger, not list or slices"
+
+        sources = self.list_data_dict[i]
+        # 1. Process Image (RGB)
+        # The 'filename' key in the JSONL should be the base name like "029734"
+        # for RGB image: 029734.png
+        image_file = sources["image_base_filename"] + ".png"
+        image_tensor, image_info = process_image(
+            image_file,
+            self.data_args,
+            self.rgb_image_folder,
+            return_info=True
+        )
+
+        # 2. Process Depth Image
+        # AI City depth images are like "029734_depth.png"
+        if self.enable_depth:
+            depth_file = sources["image_base_filename"] + "_depth.png"
+            try:
+                depth_tensor = process_depth(
+                    depth_file,
+                    self.data_args,
+                    self.depth_folder
+                )
+            except Exception as e:
+                print(f"Process depth happen ERROR at sample {sources['id']} depth file: {depth_file}, get another one...")
+                return self.__getitem__(random.randint(0, len(self.list_data_dict)))
+
+        # 3. Process Masks (RLE)
+        # process_masks expects `sources` to be a list containing the data dict for the current sample.
+        # It also expects `image_info` which we got from process_image.
+        masks_tensor = process_masks(
+            [sources],
+            self.data_args,
+            image_info
+        )
+
+        # 4. Process Conversations for Text and Labels
+        # preprocess_multimodal adds <image>\n if needed, and handles <im_start/end> tokens
+        # The <mask> -> <mask> <depth> substitution should already be done when creating the JSONL.
+        conversations = copy.deepcopy(sources["conversations"])
+        preprocessed_conversations = preprocess_multimodal(
+            [conversations],
+            self.data_args
+        )
+
+        # 5. convert to input_ids and take labels
+        # preprocess applies the conversation template (e.g., LLaMA3, Vicuna)
+        # and creates input_ids and labels (masking human turns in labels)
+        data_dict = preprocess(
+            preprocessed_conversations,
+            self.tokenizer,
+            has_image=True # alway have image
+        )
+
+        # 5. Assemble final data_dict
+        # preprocess returns a dict where input_ids and labels are lists of tensors (one per source).
+        # Since we pass one source, we take the first element.
+        # The collator expects 'image', 'depths', 'masks'
+        # Ensure tensors are unsqueezed to have a batch-like dim if process_image/depth/masks don't provide it
+        # process_image and process_depth already return [C, H, W]
+        # process_masks returns [num_masks, H_proc, W_proc]
+        if isinstance(i, int):
+            data_dict = dict(
+                input_ids=data_dict["input_ids"][0],
+                labels=data_dict["labels"][0]
+            )
+        assert len(image_tensor.shape) == 3, "Sample contain more than one image, but should be one"
+        data_dict['image'] = image_tensor.unsqueeze(0) # (1, C, H, W)
+        data_dict['masks'] = masks_tensor # (num_masks, H, W)
+        if self.enable_depth:
+            data_dict['depth'] = depth_tensor.unsqueeze(0) # (1, C, H, W)
 
         return data_dict
 
@@ -2162,9 +2283,14 @@ def make_supervised_data_module(
     """Make dataset and collator for supervised fine-tuning.
     This function is originally implemented by the LLaVA team and
     modified by Jason Lu, Haotian Tang and Ligeng Zhu."""
+    # init dataset: Which dataset to be used
     datasets_mixture.register_datasets_mixtures()
+
+    # build Dataset
     train_dataset = build_datasets(data_args, training_args=training_args, tokenizer=tokenizer, split="train")
     eval_dataset = build_datasets(data_args, training_args=training_args, tokenizer=tokenizer, split="eval")
+
+    # build DataCollator
     PROCESS_GROUP_MANAGER = get_pg_manager()
     if PROCESS_GROUP_MANAGER is None:
         data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer, data_args=data_args)
@@ -2194,15 +2320,22 @@ def build_datasets(
 ) -> None:
     all_datasets = []
     extra_info = []
+
+    # Which dataset to used? ex:--data_mixture spatialrgpt_ft+SFT_DATA
+    # spatialrgpt and SFT_DATA
     try:
         attr_name = "data_mixture" if split == "train" else "eval_data_mixture"
         mixture_names = getattr(data_args, attr_name).strip().split("+")
     except:
         logging.warning(f"Pay attention, split {split} is not built...")
         return None
+
+    # take config (data_path, image_folder, ...) for Dataset
     mixture = (DATASETS[_] for _ in mixture_names)
     print(f"[Dataset-INFO]: Loading from {mixture_names}")
     image_folder = None
+
+    # Creaate Dataset
     for dataset in mixture:
         dataset_type = dataset.dataset_type
         if dataset_type == "torch":
@@ -2224,12 +2357,12 @@ def build_datasets(
             dataset_cls = DummyDataset
             if hasattr(dataset, "image_path"):
                 image_folder = dataset.image_path
-        #-------- added aicity_dataset -----------
-        elif dataset_type == "aicity_spatial": # New type for our dataset
-            from llava.data.aicity_dataset import AICityLazySpatialDataset 
-            dataset_cls = AICityLazySpatialDataset
-            image_folder = dataset.image_path # This will be rgb_image_folder
-        #-----------------------------------------
+        # -------- added aicity_dataset -----------
+        elif dataset_type == "spatial_warehouse":
+
+            dataset_cls = LazySpatialWarehouseDataset
+            image_folder = dataset.image_path  # This will be rgb_image_folder
+        # -----------------------------------------
         else:
             raise NotImplementedError(f"{dataset_type} is not supported.")
         data_args.meta_path = getattr(dataset, "meta_path", None)
@@ -2249,6 +2382,7 @@ def build_datasets(
         all_datasets.append(dataset)
         extra_info.append(len(dataset))
 
+    # concat all dataset (for using many dataset)
     all_datasets = ConcatDataset(all_datasets)
     if split == "train":
         training_args.sample_lens = extra_info

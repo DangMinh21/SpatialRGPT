@@ -284,9 +284,12 @@ def process_masks(sources, data_args, image_info=None):
     mask_processer.do_convert_rgb = False
     mask_processer.rescale_factor = 1.0
 
+    # random choice use "rle", "segmentation", "bbox"]
     # modality_list = ["rle", "segmentation", "bbox"]
     # modality_list = [_ for _ in modality_list if _ in sources[0].keys()]
     # modality = random.choice(modality_list)
+    
+    # always use rle mask
     modality = "rle"
 
     # check crop size
@@ -380,13 +383,17 @@ def process_depth(depth_file, data_args, depth_folder):
     processor = data_args.image_processor
     if isinstance(depth_file, str):
         if depth_folder is not None:
-            print(f"Read depth image sussessfull")
-            depth = Image.open(os.path.join(depth_folder, depth_file)).convert('RGB')
+            depth = Image.open(os.path.join(depth_folder, depth_file))
         else:
-            depth = Image.open(depth_file).convert('RGB')
+            depth = Image.open(depth_file)
     else:
         # image is stored in bytearray
         depth = depth_file
+    
+    # -------- added ----------
+    if depth.mode not in ["RGB"]:
+        depth.convert("RGB")
+    # -------------------------
 
     # assume depth is already normalized durring dataset preprocessing
     if data_args.image_aspect_ratio == "resize":
@@ -398,8 +405,8 @@ def process_depth(depth_file, data_args, depth_folder):
             assert hasattr(data_args.image_processor, "size")
             crop_size = data_args.image_processor.size
         depth = depth.resize((crop_size["height"], crop_size["width"]))
+        
     if data_args.image_aspect_ratio == "pad":
-
         def expand2square(pil_img, background_color):
             width, height = pil_img.size
             if width == height:
@@ -424,7 +431,6 @@ def process_image(image_file, data_args, image_folder, return_info=False):
     processor = data_args.image_processor
     if isinstance(image_file, str):
         if image_folder is not None:
-            print(f"Read image sussessfull")
             image = Image.open(os.path.join(image_folder, image_file)).convert("RGB")
         else:
             image = Image.open(image_file).convert("RGB")
@@ -433,6 +439,8 @@ def process_image(image_file, data_args, image_folder, return_info=False):
         image = image_file
     image = image.convert("RGB")
     ori_width, ori_height = image.size
+    
+    # resize
     if data_args.image_aspect_ratio == "resize":
         if hasattr(data_args.image_processor, "crop_size"):
             # CLIP vision tower
@@ -442,6 +450,8 @@ def process_image(image_file, data_args, image_folder, return_info=False):
             assert hasattr(data_args.image_processor, "size")
             crop_size = data_args.image_processor.size
         image = image.resize((crop_size["height"], crop_size["width"]))
+        
+    # pad
     if data_args.image_aspect_ratio == "pad":
 
         def expand2square(pil_img, background_color):
@@ -456,7 +466,7 @@ def process_image(image_file, data_args, image_folder, return_info=False):
                 result = Image.new(pil_img.mode, (height, height), background_color)
                 result.paste(pil_img, ((height - width) // 2, 0))
                 return result
-
+            
         image = expand2square(image, tuple(int(x * 255) for x in processor.image_mean))
         image = processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
     else:

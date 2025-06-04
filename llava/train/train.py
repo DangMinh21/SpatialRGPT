@@ -388,8 +388,11 @@ class DPODataset(Dataset):
 def train():
     global local_rank
 
+    # ================= Argumentation: model, data, training ==================
     parser = HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+
+    # ================= Configuration ==================
 
     # FIXME(zhijianl): This should be deprecated when we move to the new scripts.
     if os.getenv("RUN_NAME") is None:
@@ -427,6 +430,8 @@ def train():
     if sp_degree > 1:
         set_pg_manager(sp_degree, ring_degree)
         print(f"Sequence parallelism is enabled, SP = {sp_degree}")
+
+    # ================= Load model ==================
 
     resume_path, continue_training = get_checkpoint_path(training_args.output_dir)
 
@@ -479,6 +484,7 @@ def train():
         cache_dir=training_args.cache_dir,
         **bnb_model_from_pretrained_args,
     )
+    # ================= Model configuration for training: lora, quantization, ... ==================
 
     if not resume_path or training_args.lora_enable:
         if model_args.mlp_path is not None:
@@ -628,6 +634,8 @@ def train():
         ):
             logging.warning("You are not tuning any part of the model. Please check if this is intended.")
 
+    # ================= Tokenizer ==================
+    
     # @yunhao: tokenizer instantiation is moved into build_llm
     tokenizer = model.tokenizer
     # @yunhao: may move this block into method "build_llm"
@@ -659,6 +667,8 @@ def train():
     model.llm.config.tokenizer_model_max_length = tokenizer.model_max_length
     if training_args.lora_enable:
         model.base_model.model.llm.pad_token_id = tokenizer.pad_token_id
+
+    # ================= Vision tower ==================
 
     vision_tower = model.get_vision_tower()
     if vision_tower is not None:
@@ -695,12 +705,15 @@ def train():
                 if hasattr(module, "weight"):
                     if training_args.bf16 and module.weight.dtype == torch.float32:
                         module = module.to(torch.bfloat16)
+                        
+    # ================= Prepare Dataset ==================
 
     data_module = make_supervised_data_module(
         tokenizer=tokenizer,
         data_args=data_args,
         training_args=training_args,
     )
+    # ================= Start Training ==================
 
     # Add a training step_end callback to check whether to autosuspend.
     callbacks = [AutoResumeCallback()]
@@ -755,6 +768,8 @@ def train():
     trainer.train(resume_from_checkpoint=resume_from_checkpoint)
     trainer.save_state()
 
+    # ================= Save model ==================
+    
     model.llm.config.use_cache = True
     model.config.resume_path = model.config._name_or_path = training_args.output_dir
     ## TODO handle lora for new initialization

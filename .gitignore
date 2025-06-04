@@ -62,3 +62,5 @@ step_to_finetune.txt
 checkpoint
 
 sample.txt
+
+.ipynb_checkpoints
