@@ -392,7 +392,7 @@ def process_depth(depth_file, data_args, depth_folder):
     
     # -------- added ----------
     if depth.mode not in ["RGB"]:
-        depth.convert("RGB")
+        depth = depth.convert("RGB")
     # -------------------------
 
     # assume depth is already normalized durring dataset preprocessing
