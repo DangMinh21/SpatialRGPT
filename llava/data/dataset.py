@@ -1859,7 +1859,7 @@ class LazySpatialWarehouseDataset(Dataset):
                 depth_tensor = process_depth(
                     depth_file,
                     self.data_args,
-                    self.depth_folder
+                    self.depth_image_folder
                 )
             except Exception as e:
                 print(f"Process depth happen ERROR at sample {sources['id']} depth file: {depth_file}, get another one...")
