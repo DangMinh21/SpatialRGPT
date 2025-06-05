@@ -58,6 +58,11 @@ echo "  Effective Batch Size: $(($PER_DEVICE_TRAIN_BATCH_SIZE * $NPROC_PER_NODE 
 echo "  Number of Epochs: $NUM_TRAIN_EPOCHS"
 echo "  Learning Rate: $LEARNING_RATE"
 
+PROJECT_ROOT="/root/SpatialRGPT" 
+export PYTHONPATH=${PROJECT_ROOT}:${PYTHONPATH} 
+echo "PYTHONPATH for torchrun: $PYTHONPATH"
+echo "Current Directory when launching torchrun: $(pwd)" 
+
 # Ensure output directory exists
 mkdir -p $OUTPUT_DIR
 
