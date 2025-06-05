@@ -3,7 +3,7 @@
 # --- GPU Configuration (Adapt for your RunPod setup) ---
 # For a single A40 GPU on a single node:
 NNODES=1
-NPROC_PER_NODE=1 # Number of GPUs you want to use on this node
+NPROC_PER_NODE=3 # Number of GPUs you want to use on this node
 MASTER_PORT=25001 # Or any other free port
 
 # --- Model and Data Paths (MUST BE SET CORRECTLY on RunPod) ---
@@ -26,7 +26,7 @@ OUTPUT_DIR="./checkpoints/spatialrgpt-aicity-qlora-A40-run1"
 # Batch size per GPU. A40 has ~40-48GB. 8B model with ZeRO-3.
 # Start very low and increase if memory allows.
 PER_DEVICE_TRAIN_BATCH_SIZE=2 # Start with 1 or 2 for an 8B model on a single A40
-GRADIENT_ACCUMULATION_STEPS=8 # Adjust to get a reasonable effective batch size
+GRADIENT_ACCUMULATION_STEPS=4 # Adjust to get a reasonable effective batch size
 # Effective Batch Size = PER_DEVICE_TRAIN_BATCH_SIZE * NPROC_PER_NODE * GRADIENT_ACCUMULATION_STEPS
 # E.g., 2 * 1 * 8 = 16. (The original 3_sft.sh had effective BS of 256 with 8 GPUs)
 
@@ -117,13 +117,13 @@ torchrun --nnodes=$NNODES --nproc_per_node=$NPROC_PER_NODE --master_port=$MASTER
     --evaluation_strategy "no" \
     --eval_steps 10 \
     --save_strategy "steps" \
-    --save_steps 5 \
+    --save_steps 30 \
     --save_total_limit 2 \
     --learning_rate $LEARNING_RATE \
     --weight_decay 0. \
     --warmup_ratio 0.03 \
     --lr_scheduler_type "cosine" \
-    --logging_steps 1 \
+    --logging_steps 2 \
     --tf32 True \
     --model_max_length 2048 \
     --gradient_checkpointing True \

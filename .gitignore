@@ -64,3 +64,5 @@ checkpoint
 sample.txt
 
 .ipynb_checkpoints
+
+log.txt
