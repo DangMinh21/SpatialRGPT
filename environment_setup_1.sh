@@ -1,14 +1,8 @@
 #!/usr/bin/env bash
 
+# download conda
 wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh
-
 bash Miniconda3-latest-Linux-x86_64.sh
-source /root/miniconda3/etc/profile.d/conda.sh
-conda activate spatialrgpt_finetune
-command -v conda
-
-# Load conda into current shell
-# conda config --set auto_activate_base false
 source /root/miniconda3/etc/profile.d/conda.sh
 
 # This is required to activate conda environment in scripts

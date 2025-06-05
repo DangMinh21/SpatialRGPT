@@ -20,7 +20,7 @@ PRETRAINED_MODEL_PATH="a8cheng/SpatialRGPT-VILA1.5-8B" # Or your local path to t
 AICITY_DATA_MIXTURE_NAME="PSIW_sft_train" # Using the name from your datasets_mixture.py
 
 # Output directory for your AI City fine-tuned model
-OUTPUT_DIR="./checkpoints/spatialrgpt-aicity-sft-A40-run1"
+OUTPUT_DIR="./checkpoints/spatialrgpt-aicity-qlora-A40-run1"
 
 # --- Training Hyperparameters (Adjust for A40 and dataset size) ---
 # Batch size per GPU. A40 has ~40-48GB. 8B model with ZeRO-3.
@@ -31,10 +31,26 @@ GRADIENT_ACCUMULATION_STEPS=8 # Adjust to get a reasonable effective batch size
 # E.g., 2 * 1 * 8 = 16. (The original 3_sft.sh had effective BS of 256 with 8 GPUs)
 
 NUM_TRAIN_EPOCHS=1 # Fine-tuning on a specific domain might need a few epochs
-LEARNING_RATE=2e-5   # Common SFT learning rate
+LEARNING_RATE=2e-4   # Common SFT learning rate
 
 # Vision Tower (Should match the pre-trained model)
 VISION_TOWER="google/siglip-so400m-patch14-384"
+
+# --- QLoRA Specific Parameters ---
+BITS=4                     # Enable 4-bit quantization for QLoRA
+LORA_ENABLE=True           # Enable LoRA
+LORA_R=64                  # LoRA rank (common values: 8, 16, 32, 64)
+LORA_ALPHA=16              # LoRA alpha (often 2*lora_r or lora_r)
+LORA_DROPOUT=0.05          # LoRA dropout
+DOUBLE_QUANT=True          # Use double quantization (QLoRA specific)
+QUANT_TYPE="nf4"           # Quantization type: "nf4" (NormalFloat4) or "fp4"
+
+# --- Tunable Components with QLoRA ---
+# For QLoRA primarily on LLM:
+TUNE_LLM_LORA=True          # Apply LoRA to the LLM
+TUNE_VISION_TOWER=False     # Typically freeze vision tower, or full tune if memory allows and needed
+TUNE_MM_PROJECTOR=True      # Often beneficial to tune the projector
+TUNE_REGION_EXTRACTOR=True  # Also beneficial for spatial tasks
 
 # --- Environment Variables ---
 export WANDB_PROJECT="AI_City_Challenge_SpatialRGPT_FineTune" # Customize for your WandB
@@ -46,7 +62,7 @@ export MASTER_ADDR="127.0.0.1"
 # export RANK="0" 
 # export WORLD_SIZE=$NPROC_PER_NODE
 
-echo "Starting Fine-tuning for AI City Challenge on A40..."
+echo "Starting QLoRA Fine-tuning for AI City Challenge on A40..."
 echo "  Number of Nodes: $NNODES"
 echo "  Number of GPUs per Node: $NPROC_PER_NODE"
 echo "  Pre-trained Model Path: $PRETRAINED_MODEL_PATH"
@@ -57,11 +73,7 @@ echo "  Gradient Accumulation Steps: $GRADIENT_ACCUMULATION_STEPS"
 echo "  Effective Batch Size: $(($PER_DEVICE_TRAIN_BATCH_SIZE * $NPROC_PER_NODE * $GRADIENT_ACCUMULATION_STEPS))"
 echo "  Number of Epochs: $NUM_TRAIN_EPOCHS"
 echo "  Learning Rate: $LEARNING_RATE"
-
-PROJECT_ROOT="/root/SpatialRGPT" 
-export PYTHONPATH=${PROJECT_ROOT}:${PYTHONPATH} 
-echo "PYTHONPATH for torchrun: $PYTHONPATH"
-echo "Current Directory when launching torchrun: $(pwd)" 
+echo "  QLoRA: Enabled (Bits: $BITS, LoRA R: $LORA_R, LoRA Alpha: $LORA_ALPHA)"
 
 # Ensure output directory exists
 mkdir -p $OUTPUT_DIR
@@ -80,10 +92,18 @@ torchrun --nnodes=$NNODES --nproc_per_node=$NPROC_PER_NODE --master_port=$MASTER
     --enable_region True \
     --enable_depth True \
     --region_extractor regiongpt \
-    --tune_vision_tower True \
-    --tune_mm_projector True \
-    --tune_language_model True \
-    --tune_region_extractor True \
+    --bits $BITS \
+    --lora_enable $LORA_ENABLE \
+    --lora_r $LORA_R \
+    --lora_alpha $LORA_ALPHA \
+    --lora_dropout $LORA_DROPOUT \
+    --lora_llm $TUNE_LLM_LORA \
+    --double_quant $DOUBLE_QUANT \
+    --quant_type "$QUANT_TYPE" \
+    --tune_vision_tower $TUNE_VISION_TOWER \
+    --tune_mm_projector $TUNE_MM_PROJECTOR \
+    --tune_language_model False \
+    --tune_region_extractor $TUNE_REGION_EXTRACTOR \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \

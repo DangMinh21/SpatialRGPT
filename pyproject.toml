@@ -30,6 +30,7 @@ dependencies = [
 
 [project.optional-dependencies]
 train = ["deepspeed==0.9.5", "ninja", "wandb"]
+eval = ["mmengine", "word2number", "Levenshtein", "nltk", "pywsd"]
 
 
 [project.urls]

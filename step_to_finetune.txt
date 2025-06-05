@@ -1,0 +1,53 @@
+1. setup runpod
+    - init a pod
+    - clone spatialrgpt repo: git clone https://github.com/DangMinh21/SpatialRGPT.git
+    - setup environment: sh environment_setup.sh
+    - download pretrained model : python download_dataset.ipynb
+        - download pretrained model
+        - download Dataset
+
+2. Prepare AI City Challenge Dataset
+    - Convert AI City Data 
+
+3. Run finetune
+
+# step 1: clone repo, download conda, run environment_setup
+# step 2: download dataset, prepare dataset
+# step 3: run finetune script
+
+git clone https://github.com/DangMinh21/SpatialRGPT.git
+
+
+/path/to/PhysicalAI-Spatial-Intelligence-Warehouse/
+├── train_sample.json
+├── val.json
+├── train/
+│   ├── images/
+│   │   ├── 000001.png
+│   │   └── ...
+│   └── depths/ (The AI City Challenge provided depth maps)
+│       ├── 000001_depth.png
+│       └── ...
+└── val/
+    ├── images/
+    └── depths/
+
+
+
+/path/to/PhysicalAI-Spatial-Intelligence-Warehouse/
+├── train.json
+├── test.json
+├── val.json
+├── train/
+│   ├── images/
+│   │   ├── 000001.png
+│   │   └── ...
+│   └── depths/ (The AI City Challenge provided depth maps)
+│       ├── 000001_depth.png
+│       └── ...
+│── val/
+│    ├── images/
+│    └── depths/
+└── test/
+    ├── images/
+    └── depths/

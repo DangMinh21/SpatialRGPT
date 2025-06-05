@@ -57,7 +57,7 @@ dataset_pipeline/osdsynth/external/*
 # add
 PhysicalAI-Spatial-Intelligence-Warehouse
 
-step_to_finetune.txt
+# step_to_finetune.txt
 
 checkpoint
 
