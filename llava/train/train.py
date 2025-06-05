@@ -42,7 +42,7 @@ from llava.mm_utils import process_image
 from llava.model import *
 from llava.train.args import DataArguments, ModelArguments, TrainingArguments
 from llava.train.callbacks.autoresume_callback import AutoResumeCallback
-from llava.train.llava_trainer import LLaVATrainer, #VILADPOTrainer
+from llava.train.llava_trainer import LLaVATrainer #VILADPOTrainer
 from llava.train.sequence_parallel import set_pg_manager
 from llava.train.utils import (
     get_checkpoint_path,
