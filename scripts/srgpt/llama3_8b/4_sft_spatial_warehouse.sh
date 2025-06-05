@@ -25,8 +25,8 @@ OUTPUT_DIR="./checkpoints/spatialrgpt-aicity-qlora-A40-run1"
 # --- Training Hyperparameters (Adjust for A40 and dataset size) ---
 # Batch size per GPU. A40 has ~40-48GB. 8B model with ZeRO-3.
 # Start very low and increase if memory allows.
-PER_DEVICE_TRAIN_BATCH_SIZE=2 # Start with 1 or 2 for an 8B model on a single A40
-GRADIENT_ACCUMULATION_STEPS=4 # Adjust to get a reasonable effective batch size
+PER_DEVICE_TRAIN_BATCH_SIZE=4 # Start with 1 or 2 for an 8B model on a single A40
+GRADIENT_ACCUMULATION_STEPS=2 # Adjust to get a reasonable effective batch size
 # Effective Batch Size = PER_DEVICE_TRAIN_BATCH_SIZE * NPROC_PER_NODE * GRADIENT_ACCUMULATION_STEPS
 # E.g., 2 * 1 * 8 = 16. (The original 3_sft.sh had effective BS of 256 with 8 GPUs)
 
