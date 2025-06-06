@@ -109,15 +109,16 @@ def get_depth_map(raw_image, depth_model, depth_transform):
 def eval_model(args):
     disable_torch_init()
 
-    # Depth Model
+    # Load Depth Model and Depth Transformers
     depth_model, depth_transform = get_depth_predictor()
     print("Depth model successfully loaded!")
 
-    # Model
+    # Load Model, Tokenizer and ImageProcessor
     model_path = os.path.expanduser(args.model_path)
     model_name = get_model_name_from_path(model_path)
     tokenizer, model, image_processor, context_len = load_pretrained_model(model_path, model_name, args.model_base)
 
+    # Read anotation data
     with open(args.annotation_file) as f:
         questions = json.load(f)
     questions = get_chunk(questions, args.num_chunks, args.chunk_idx)
@@ -126,19 +127,21 @@ def eval_model(args):
 
     ans_file = open(answers_file, "w")
 
+    # MaskProcessor
     mask_processer = copy.deepcopy(image_processor)
     mask_processer.do_normalize = False
     mask_processer.do_convert_rgb = False
     mask_processer.rescale_factor = 1.0
 
+    # Load each question
     for line in tqdm(questions, total=len(questions)):
         question_id = line["id"]
         image_file = line["image_info"]["file_path"]
         image_info = line["image_info"]
         text_question = line["text_q"]
         qa_info = line["qa_info"]
-        # generate mask
-
+        
+        # process masks or boxes
         if args.use_mask:
 
             masks = []
@@ -187,6 +190,7 @@ def eval_model(args):
         else:
             masks = None
 
+        # Process Image and Depth
         image = Image.open(os.path.join(args.image_folder, image_file)).convert("RGB")
 
         depth_input_image = np.array(Image.open(os.path.join(args.image_folder, image_file)).convert("RGB"))
@@ -197,6 +201,7 @@ def eval_model(args):
             model.device, dtype=torch.float16
         )
 
+        # Process Conversation
         conv = conv_templates[args.conv_mode].copy()
         conversations = line["conversations"]
 
@@ -220,6 +225,7 @@ def eval_model(args):
 
             model.to(dtype=torch.bfloat16)
 
+            # Forward input through mdoel to get output
             with torch.inference_mode():
                 output_ids = model.generate(
                     input_ids,
@@ -242,6 +248,7 @@ def eval_model(args):
                 outputs = outputs[: -len(stop_str)]
             outputs = outputs.strip()
 
+            # Write answer
             ans_file.write(
                 json.dumps(
                     {

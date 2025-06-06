@@ -597,12 +597,16 @@ def preprocess(
         or conversation_lib.default_conversation.version == "hermes-2"
     ):
         return preprocess_mpt(sources, tokenizer, has_image=has_image, no_system_prompt=no_system_prompt)
+
     if conversation_lib.default_conversation.sep_style == conversation_lib.SeparatorStyle.LLAMA_2:
         return preprocess_llama_2(sources, tokenizer, has_image=has_image)
+
     if conversation_lib.default_conversation.sep_style == conversation_lib.SeparatorStyle.MISTRAL:
         return preprocess_llama_2(sources, tokenizer, has_image=has_image, is_mistral=True)
+    
     if conversation_lib.default_conversation.sep_style == conversation_lib.SeparatorStyle.LLAMA_3:
         return preprocess_llama_3(sources, tokenizer, has_image=has_image, no_system_prompt=no_system_prompt)
+    
     if conversation_lib.default_conversation.version.startswith("v1"):
         return preprocess_v1(sources, tokenizer, has_image=has_image, no_system_prompt=no_system_prompt)
 
@@ -1763,8 +1767,7 @@ class LazySupervisedSpatialDataset(Dataset):
 
         # process conversations
         source_conversations = preprocess_multimodal(
-            copy.deepcopy([e["conversations"] for e in sources]),
-            self.data_args
+            copy.deepcopy([e["conversations"] for e in sources]), self.data_args
         )
 
         # read depth if enabled
@@ -1844,53 +1847,35 @@ class LazySpatialWarehouseDataset(Dataset):
         # The 'filename' key in the JSONL should be the base name like "029734"
         # for RGB image: 029734.png
         image_file = sources["image_base_filename"] + ".png"
-        image_tensor, image_info = process_image(
-            image_file,
-            self.data_args,
-            self.rgb_image_folder,
-            return_info=True
-        )
+        image_tensor, image_info = process_image(image_file, self.data_args, self.rgb_image_folder, return_info=True)
 
         # 2. Process Depth Image
         # AI City depth images are like "029734_depth.png"
         if self.enable_depth:
             depth_file = sources["image_base_filename"] + "_depth.png"
             try:
-                depth_tensor = process_depth(
-                    depth_file,
-                    self.data_args,
-                    self.depth_image_folder
-                )
+                depth_tensor = process_depth(depth_file, self.data_args, self.depth_image_folder)
             except Exception as e:
-                print(f"Process depth happen ERROR at sample {sources['id']} depth file: {depth_file}, get another one...\nError: {e}")
+                print(
+                    f"Process depth happen ERROR at sample {sources['id']} depth file: {depth_file}, get another one...\nError: {e}"
+                )
                 return self.__getitem__(random.randint(0, len(self.list_data_dict)))
 
         # 3. Process Masks (RLE)
         # process_masks expects `sources` to be a list containing the data dict for the current sample.
         # It also expects `image_info` which we got from process_image.
-        masks_tensor = process_masks(
-            [sources],
-            self.data_args,
-            image_info
-        )
+        masks_tensor = process_masks([sources], self.data_args, image_info)
 
         # 4. Process Conversations for Text and Labels
         # preprocess_multimodal adds <image>\n if needed, and handles <im_start/end> tokens
         # The <mask> -> <mask> <depth> substitution should already be done when creating the JSONL.
         conversations = copy.deepcopy(sources["conversations"])
-        preprocessed_conversations = preprocess_multimodal(
-            [conversations],
-            self.data_args
-        )
+        preprocessed_conversations = preprocess_multimodal([conversations], self.data_args)
 
         # 5. convert to input_ids and take labels
         # preprocess applies the conversation template (e.g., LLaMA3, Vicuna)
         # and creates input_ids and labels (masking human turns in labels)
-        data_dict = preprocess(
-            preprocessed_conversations,
-            self.tokenizer,
-            has_image=True # alway have image
-        )
+        data_dict = preprocess(preprocessed_conversations, self.tokenizer, has_image=True)  # alway have image
 
         # 5. Assemble final data_dict
         # preprocess returns a dict where input_ids and labels are lists of tensors (one per source).
@@ -1900,15 +1885,12 @@ class LazySpatialWarehouseDataset(Dataset):
         # process_image and process_depth already return [C, H, W]
         # process_masks returns [num_masks, H_proc, W_proc]
         if isinstance(i, int):
-            data_dict = dict(
-                input_ids=data_dict["input_ids"][0],
-                labels=data_dict["labels"][0]
-            )
+            data_dict = dict(input_ids=data_dict["input_ids"][0], labels=data_dict["labels"][0])
         assert len(image_tensor.shape) == 3, "Sample contain more than one image, but should be one"
-        data_dict['image'] = image_tensor.unsqueeze(0) # (1, C, H, W)
-        data_dict['masks'] = masks_tensor # (num_masks, H, W)
+        data_dict["image"] = image_tensor.unsqueeze(0)  # (1, C, H, W)
+        data_dict["masks"] = masks_tensor  # (num_masks, H, W)
         if self.enable_depth:
-            data_dict['depth'] = depth_tensor.unsqueeze(0) # (1, C, H, W)
+            data_dict["depth"] = depth_tensor.unsqueeze(0)  # (1, C, H, W)
 
         return data_dict
 
