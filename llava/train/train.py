@@ -51,7 +51,7 @@ from llava.train.utils import (
     unit_test_rope_scaling,
     vision_resolution_elevation,
 )
-# from llava.trl.trainer.utils import DPODataCollatorWithPadding
+from llava.trl.trainer.utils import DPODataCollatorWithPadding
 
 local_rank = None
 
@@ -189,107 +189,107 @@ def make_conv(prompt, answer):
     ]
 
 
-# @dataclass
-# class DPODataCollator(DPODataCollatorWithPadding):
-#     tokenizer: Any = None
+@dataclass
+class DPODataCollator(DPODataCollatorWithPadding):
+    tokenizer: Any = None
 
-#     def collate(self, batch):
-#         # first, pad everything to the same length
-#         # input_ids, labels = tuple([instance[key] for instance in instances]
-#         #                           for key in ("input_ids", "labels"))
-#         # input_ids = torch.nn.utils.rnn.pad_sequence(
-#         #     input_ids,
-#         #     batch_first=True,
-#         #     padding_value=self.tokenizer.pad_token_id)
-#         # labels = torch.nn.utils.rnn.pad_sequence(labels,
-#         #                                          batch_first=True,
-#         #                                          padding_value=IGNORE_INDEX)
-#         # input_ids = input_ids[:, :self.tokenizer.model_max_length]
-#         # labels = labels[:, :self.tokenizer.model_max_length]
-#         # batch = dict(
-#         #     input_ids=input_ids,
-#         #     labels=labels,
-#         #     attention_mask=input_ids.ne(self.tokenizer.pad_token_id),
-#         # )
-#         padded_batch = {}
-#         for k in batch[0].keys():
-#             if k.endswith("_input_ids") or k.endswith("_attention_mask") or k.endswith("_labels"):
-#                 # if "prompt" in k:
-#                 #     to_pad = [torch.LongTensor(ex[k][::-1]) for ex in batch]
-#                 # else:
-#                 to_pad = [torch.LongTensor(ex[k]) for ex in batch]
-#                 if k.endswith("_input_ids"):
-#                     padding_value = self.pad_token_id
-#                 elif k.endswith("_labels"):
-#                     padding_value = self.label_pad_token_id
-#                 else:
-#                     continue
-#                 # elif k.endswith("_attention_mask"):
-#                 #     padding_value = self.padding_value
-#                 # else:
-#                 #     raise ValueError(f"Unexpected key in batch '{k}'")
+    def collate(self, batch):
+        # first, pad everything to the same length
+        # input_ids, labels = tuple([instance[key] for instance in instances]
+        #                           for key in ("input_ids", "labels"))
+        # input_ids = torch.nn.utils.rnn.pad_sequence(
+        #     input_ids,
+        #     batch_first=True,
+        #     padding_value=self.tokenizer.pad_token_id)
+        # labels = torch.nn.utils.rnn.pad_sequence(labels,
+        #                                          batch_first=True,
+        #                                          padding_value=IGNORE_INDEX)
+        # input_ids = input_ids[:, :self.tokenizer.model_max_length]
+        # labels = labels[:, :self.tokenizer.model_max_length]
+        # batch = dict(
+        #     input_ids=input_ids,
+        #     labels=labels,
+        #     attention_mask=input_ids.ne(self.tokenizer.pad_token_id),
+        # )
+        padded_batch = {}
+        for k in batch[0].keys():
+            if k.endswith("_input_ids") or k.endswith("_attention_mask") or k.endswith("_labels"):
+                # if "prompt" in k:
+                #     to_pad = [torch.LongTensor(ex[k][::-1]) for ex in batch]
+                # else:
+                to_pad = [torch.LongTensor(ex[k]) for ex in batch]
+                if k.endswith("_input_ids"):
+                    padding_value = self.pad_token_id
+                elif k.endswith("_labels"):
+                    padding_value = self.label_pad_token_id
+                else:
+                    continue
+                # elif k.endswith("_attention_mask"):
+                #     padding_value = self.padding_value
+                # else:
+                #     raise ValueError(f"Unexpected key in batch '{k}'")
 
-#                 padded_batch[k] = torch.nn.utils.rnn.pad_sequence(to_pad, batch_first=True, padding_value=padding_value)
-#                 # for the prompt, flip back so padding is on left side
-#                 # if "prompt" in k:
-#                 #     padded_batch[k] = padded_batch[k].flip(dims=[1])
-#             else:
-#                 padded_batch[k] = [ex[k] for ex in batch]
-#         for k in ["chosen_input_ids", "rejected_input_ids"]:
-#             attn_k = k.replace("input_ids", "attention_mask")
-#             padded_batch[attn_k] = padded_batch[k].ne(self.pad_token_id)
-#         return padded_batch
+                padded_batch[k] = torch.nn.utils.rnn.pad_sequence(to_pad, batch_first=True, padding_value=padding_value)
+                # for the prompt, flip back so padding is on left side
+                # if "prompt" in k:
+                #     padded_batch[k] = padded_batch[k].flip(dims=[1])
+            else:
+                padded_batch[k] = [ex[k] for ex in batch]
+        for k in ["chosen_input_ids", "rejected_input_ids"]:
+            attn_k = k.replace("input_ids", "attention_mask")
+            padded_batch[attn_k] = padded_batch[k].ne(self.pad_token_id)
+        return padded_batch
 
-#     def tokenize_batch_element(self, prompt: str, chosen: str, rejected: str) -> Dict:
-#         """Tokenize a single batch element.
+    def tokenize_batch_element(self, prompt: str, chosen: str, rejected: str) -> Dict:
+        """Tokenize a single batch element.
 
-#         At this stage, we don't convert to PyTorch tensors yet; we just handle the truncation
-#             in case the prompt + chosen or prompt + rejected responses is/are too long. First
-#             we truncate the prompt; if we're still too long, we truncate the chosen/rejected.
+        At this stage, we don't convert to PyTorch tensors yet; we just handle the truncation
+            in case the prompt + chosen or prompt + rejected responses is/are too long. First
+            we truncate the prompt; if we're still too long, we truncate the chosen/rejected.
 
-#         We also create the labels for the chosen/rejected responses, which are of length equal to
-#             the sum of the length of the prompt and the chosen/rejected response, with
-#             label_pad_token_id  for the prompt tokens.
-#         """
-#         # import pdb; pdb.set_trace()
-#         batch = {}
+        We also create the labels for the chosen/rejected responses, which are of length equal to
+            the sum of the length of the prompt and the chosen/rejected response, with
+            label_pad_token_id  for the prompt tokens.
+        """
+        # import pdb; pdb.set_trace()
+        batch = {}
 
-#         chosen_sources = make_conv(prompt, chosen)
-#         rejected_sources = make_conv(prompt, rejected)
-#         chosen_data_dict = dataset.preprocess([chosen_sources], self.tokenizer, has_image=True)
-#         # chosen_data_dict['attention_mask'] = chosen_data_dict["input_ids"].ne(self.tokenizer.pad_token_id)
+        chosen_sources = make_conv(prompt, chosen)
+        rejected_sources = make_conv(prompt, rejected)
+        chosen_data_dict = dataset.preprocess([chosen_sources], self.tokenizer, has_image=True)
+        # chosen_data_dict['attention_mask'] = chosen_data_dict["input_ids"].ne(self.tokenizer.pad_token_id)
 
-#         rejected_data_dict = dataset.preprocess([rejected_sources], self.tokenizer, has_image=True)
-#         # rejected_data_dict['attention_mask'] = rejected_data_dict["input_ids"].ne(self.tokenizer.pad_token_id)
+        rejected_data_dict = dataset.preprocess([rejected_sources], self.tokenizer, has_image=True)
+        # rejected_data_dict['attention_mask'] = rejected_data_dict["input_ids"].ne(self.tokenizer.pad_token_id)
 
-#         chosen_data_dict = {k: v[0] for k, v in chosen_data_dict.items()}
-#         rejected_data_dict = {k: v[0] for k, v in rejected_data_dict.items()}
+        chosen_data_dict = {k: v[0] for k, v in chosen_data_dict.items()}
+        rejected_data_dict = {k: v[0] for k, v in rejected_data_dict.items()}
 
-#         for k, toks in {
-#             "chosen": chosen_data_dict,
-#             "rejected": rejected_data_dict,
-#         }.items():
-#             for type_key, tokens in toks.items():
-#                 if type_key == "token_type_ids":
-#                     continue
-#                 batch[f"{k}_{type_key}"] = tokens
-#         return batch
+        for k, toks in {
+            "chosen": chosen_data_dict,
+            "rejected": rejected_data_dict,
+        }.items():
+            for type_key, tokens in toks.items():
+                if type_key == "token_type_ids":
+                    continue
+                batch[f"{k}_{type_key}"] = tokens
+        return batch
 
-#     def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, Any]:
-#         tokenized_batch = []
-#         Xs, keys = [], []
-#         for feature in features:
-#             prompt = feature["prompt"]
-#             chosen = feature["chosen"]
-#             rejected = feature["rejected"]
+    def __call__(self, features: List[Dict[str, Any]]) -> Dict[str, Any]:
+        tokenized_batch = []
+        Xs, keys = [], []
+        for feature in features:
+            prompt = feature["prompt"]
+            chosen = feature["chosen"]
+            rejected = feature["rejected"]
 
-#             batch_element = self.tokenize_batch_element(prompt, chosen, rejected)
-#             batch_element["images"] = feature["images"]
-#             tokenized_batch.append(batch_element)
+            batch_element = self.tokenize_batch_element(prompt, chosen, rejected)
+            batch_element["images"] = feature["images"]
+            tokenized_batch.append(batch_element)
 
-#         # return collated batch
-#         padded_batch = self.collate(tokenized_batch)
-#         return padded_batch
+        # return collated batch
+        padded_batch = self.collate(tokenized_batch)
+        return padded_batch
 
 
 import json
@@ -407,13 +407,13 @@ def train():
 
         bnb_model_from_pretrained_args.update(
             dict(
-                # device_map={"": training_args.device},
+                device_map={"": training_args.device},
                 load_in_4bit=training_args.bits == 4,
                 load_in_8bit=training_args.bits == 8,
                 quantization_config=BitsAndBytesConfig(
                     load_in_4bit=training_args.bits == 4,
                     load_in_8bit=training_args.bits == 8,
-                    llm_int8_skip_modules=["mm_projector", "lm_head"],
+                    llm_int8_skip_modules=["mm_projector"], # ["mm_projector", "lm_head"]
                     llm_int8_threshold=6.0,
                     llm_int8_has_fp16_weight=False,
                     bnb_4bit_compute_dtype=compute_dtype,
@@ -718,40 +718,40 @@ def train():
     # Add a training step_end callback to check whether to autosuspend.
     callbacks = [AutoResumeCallback()]
 
-    # if training_args.dpo:
-    #     ref_model = model_cls(
-    #         config=config,
-    #         attn_implementation="flash_attention_2",
-    #         model_max_length=training_args.model_max_length,
-    #         cache_dir=training_args.cache_dir,
-    #         **bnb_model_from_pretrained_args,
-    #     )
+    if training_args.dpo:
+        ref_model = model_cls(
+            config=config,
+            attn_implementation="flash_attention_2",
+            model_max_length=training_args.model_max_length,
+            cache_dir=training_args.cache_dir,
+            **bnb_model_from_pretrained_args,
+        )
 
-    #     train_dataset = DPODataset(tokenizer=tokenizer, data_mixture=data_args.data_mixture, data_args=data_args)
+        train_dataset = DPODataset(tokenizer=tokenizer, data_mixture=data_args.data_mixture, data_args=data_args)
 
-    #     data_collator = DPODataCollator(
-    #         tokenizer=tokenizer,
-    #         label_pad_token_id=IGNORE_INDEX,
-    #         pad_token_id=tokenizer.pad_token_id,
-    #     )
-    #     extra_info = []
-    #     extra_info.append(len(train_dataset))
-    #     training_args.sample_lens = extra_info
+        data_collator = DPODataCollator(
+            tokenizer=tokenizer,
+            label_pad_token_id=IGNORE_INDEX,
+            pad_token_id=tokenizer.pad_token_id,
+        )
+        extra_info = []
+        extra_info.append(len(train_dataset))
+        training_args.sample_lens = extra_info
 
-    #     trainer = VILADPOTrainer(
-    #         model=model,
-    #         dpo_alpha=1.0,
-    #         gamma=0,
-    #         ref_model=ref_model,
-    #         tokenizer=tokenizer,
-    #         args=training_args,
-    #         beta=training_args.dpo_beta,
-    #         callbacks=callbacks,
-    #         train_dataset=train_dataset,
-    #         data_collator=data_collator,
-    #     )
-    # else:
-    trainer = LLaVATrainer(model=model, tokenizer=tokenizer, args=training_args, callbacks=callbacks, **data_module)
+        trainer = VILADPOTrainer(
+            model=model,
+            dpo_alpha=1.0,
+            gamma=0,
+            ref_model=ref_model,
+            tokenizer=tokenizer,
+            args=training_args,
+            beta=training_args.dpo_beta,
+            callbacks=callbacks,
+            train_dataset=train_dataset,
+            data_collator=data_collator,
+        )
+    else:
+        trainer = LLaVATrainer(model=model, tokenizer=tokenizer, args=training_args, callbacks=callbacks, **data_module)
     print(
         "length of dataloader:",
         len(trainer.get_train_dataloader()),
