@@ -1,39 +1,21 @@
 #!/bin/bash
 
-# --- GPU Configuration (Adapt for your RunPod setup) ---
-# For a single A40 GPU on a single node:
 NNODES=1
-NPROC_PER_NODE=3 # Number of GPUs you want to use on this node
-MASTER_PORT=25001 # Or any other free port
+NPROC_PER_NODE=3 
+MASTER_PORT=25001 
 
-# --- Model and Data Paths (MUST BE SET CORRECTLY on RunPod) ---
-# Path to the downloaded Stage 2 pre-trained model checkpoint
-# This should be the output of a script like '2_pretrain.sh'
-# Example: "./checkpoints/vila-siglip-llama3-8b-vila-v1.5-srgpt-pretrain"
-# Or the Hugging Face ID if it represents this stage accurately.
-# For your previous inference tests, you used "a8cheng/SpatialRGPT-VILA1.5-8B".
-# Ensure this is the correct base for SFT.
-PRETRAINED_MODEL_PATH="a8cheng/SpatialRGPT-VILA1.5-8B" # Or your local path to the stage 2 model
+PRETRAINED_MODEL_PATH="a8cheng/SpatialRGPT-VILA1.5-8B" 
 
-# Name of your AI City dataset mixture defined in datasets_mixture.py
-# This name should point to your processed train_aicity_srgpt.jsonl and related image/depth folders
-AICITY_DATA_MIXTURE_NAME="PSIW_sft_train" # Using the name from your datasets_mixture.py
+AICITY_DATA_MIXTURE_NAME="PSIW_sft_train" 
 
-# Output directory for your AI City fine-tuned model
 OUTPUT_DIR="./checkpoints/spatialrgpt-aicity-qlora-A40-run1"
 
-# --- Training Hyperparameters (Adjust for A40 and dataset size) ---
-# Batch size per GPU. A40 has ~40-48GB. 8B model with ZeRO-3.
-# Start very low and increase if memory allows.
-PER_DEVICE_TRAIN_BATCH_SIZE=4 # Start with 1 or 2 for an 8B model on a single A40
-GRADIENT_ACCUMULATION_STEPS=2 # Adjust to get a reasonable effective batch size
-# Effective Batch Size = PER_DEVICE_TRAIN_BATCH_SIZE * NPROC_PER_NODE * GRADIENT_ACCUMULATION_STEPS
-# E.g., 2 * 1 * 8 = 16. (The original 3_sft.sh had effective BS of 256 with 8 GPUs)
+PER_DEVICE_TRAIN_BATCH_SIZE=4 
+GRADIENT_ACCUMULATION_STEPS=2 
 
-NUM_TRAIN_EPOCHS=1 # Fine-tuning on a specific domain might need a few epochs
-LEARNING_RATE=2e-4   # Common SFT learning rate
+NUM_TRAIN_EPOCHS=1 
+LEARNING_RATE=2e-4 
 
-# Vision Tower (Should match the pre-trained model)
 VISION_TOWER="google/siglip-so400m-patch14-384"
 
 # --- QLoRA Specific Parameters ---
@@ -45,17 +27,14 @@ LORA_DROPOUT=0.05          # LoRA dropout
 DOUBLE_QUANT=True          # Use double quantization (QLoRA specific)
 QUANT_TYPE="nf4"           # Quantization type: "nf4" (NormalFloat4) or "fp4"
 
-# --- Tunable Components with QLoRA ---
-# For QLoRA primarily on LLM:
 TUNE_LLM_LORA=True          # Apply LoRA to the LLM
 TUNE_VISION_TOWER=False     # Typically freeze vision tower, or full tune if memory allows and needed
 TUNE_MM_PROJECTOR=True      # Often beneficial to tune the projector
 TUNE_REGION_EXTRACTOR=True  # Also beneficial for spatial tasks
 
 # --- Environment Variables ---
-export WANDB_PROJECT="AI_City_Challenge_SpatialRGPT_FineTune" # Customize for your WandB
+export WANDB_PROJECT="AI_City_Challenge_SpatialRGPT_FineTune" 
 
-# --- Setup for torchrun (single node) ---
 export MASTER_ADDR="127.0.0.1" 
 # For single node, torchrun usually handles RANK and WORLD_SIZE based on nproc_per_node.
 # Explicitly setting for clarity if needed by deeper scripts, but often not required for torchrun single-node.
@@ -78,8 +57,6 @@ echo "  QLoRA: Enabled (Bits: $BITS, LoRA R: $LORA_R, LoRA Alpha: $LORA_ALPHA)"
 # Ensure output directory exists
 mkdir -p $OUTPUT_DIR
 
-# The main training command using torchrun
-# Ensure you are in the root of the SpatialRGPT cloned directory when running this script
 torchrun --nnodes=$NNODES --nproc_per_node=$NPROC_PER_NODE --master_port=$MASTER_PORT \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
