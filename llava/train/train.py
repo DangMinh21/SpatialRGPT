@@ -16,7 +16,7 @@
 
 import copy
 import logging
-import os
+import os, sys
 import warnings
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Sequence
@@ -52,6 +52,7 @@ from llava.train.utils import (
     vision_resolution_elevation,
 )
 # from llava.trl.trainer.utils import DPODataCollatorWithPadding
+
 
 local_rank = None
 
@@ -407,13 +408,13 @@ def train():
 
         bnb_model_from_pretrained_args.update(
             dict(
-                device_map={"": training_args.device},
+                # device_map={"": training_args.device},
                 load_in_4bit=training_args.bits == 4,
                 load_in_8bit=training_args.bits == 8,
                 quantization_config=BitsAndBytesConfig(
                     load_in_4bit=training_args.bits == 4,
                     load_in_8bit=training_args.bits == 8,
-                    llm_int8_skip_modules=["mm_projector"], # ["mm_projector", "lm_head"]
+                    llm_int8_skip_modules=["mm_projector", "lm_head"], #["mm_projector"], 
                     llm_int8_threshold=6.0,
                     llm_int8_has_fp16_weight=False,
                     bnb_4bit_compute_dtype=compute_dtype,
@@ -633,6 +634,7 @@ def train():
             ]
         ):
             logging.warning("You are not tuning any part of the model. Please check if this is intended.")
+    mprint(model)
 
     # ================= Tokenizer ==================
     
@@ -713,6 +715,7 @@ def train():
         data_args=data_args,
         training_args=training_args,
     )
+
     # ================= Start Training ==================
 
     # Add a training step_end callback to check whether to autosuspend.

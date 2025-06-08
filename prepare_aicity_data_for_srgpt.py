@@ -38,6 +38,7 @@ def convert_aicity_to_spatialrgpt_format(aicity_json_path, output_json_path):
 
     print(f"Found {len(aicity_data)} samples. Converting...")
     skipped_samples = 0
+    total_samples = 0
 
     # open output file to write
     with open(output_json_path, "w") as outfile:
@@ -87,11 +88,12 @@ def convert_aicity_to_spatialrgpt_format(aicity_json_path, output_json_path):
                     "category": sample.get("category", "unknown"),  # Keep for reference
                 }
                 outfile.write(json.dumps(formatted_sample) + "\n")
+                total_samples += 1
             except Exception as e:
                 print(f"Error processing sample ID {sample.get('id')} (index {sample_idx}): {e}")
                 skipped_samples += 1
 
-    print(f"Conversion complete for {aicity_json_path}. Output saved to: {output_json_path}")
+    print(f"Conversion complete for '{aicity_json_path}'. Output saved to: '{output_json_path}'\nTotal sample: {total_samples}")
     if skipped_samples > 0:
         print(f"Skipped {skipped_samples} samples due to issues.")
 
@@ -99,17 +101,21 @@ def convert_aicity_to_spatialrgpt_format(aicity_json_path, output_json_path):
 if __name__ == "__main__":
     DEFAULT_IMAGE_TOKEN = "<image>"
 
-    base_raw_data_dir = "PhysicalAI-Spatial-Intelligence-Warehouse" 
+    base_raw_data_dir = "datasets/PhysicalAI-Spatial-Intelligence-Warehouse" 
     # original_train_json = os.path.join(base_raw_data_dir, "train.json")
-    original_train_json = os.path.join(base_raw_data_dir, "train_sample.json")
+    # original_train_sample_json = os.path.join(base_raw_data_dir, "train_sample/train_sample.json")
+    original_train_json = os.path.join(base_raw_data_dir, "train.json")
     original_val_json = os.path.join(base_raw_data_dir, "val.json")
+    original_test_json = os.path.join(base_raw_data_dir, "test.json")
 
     # Paths for processed output data
-    processed_data_dir = "PhysicalAI-Spatial-Intelligence-Warehouse/formatted_dataset"  # Script will create this
+    processed_data_dir = "datasets/PhysicalAI-Spatial-Intelligence-Warehouse/formatted_dataset"  # Script will create this
     os.makedirs(processed_data_dir, exist_ok=True)
 
+    # processed_train_sample_jsonl = os.path.join(processed_data_dir, "train_aicity_srgpt.jsonl")
     processed_train_jsonl = os.path.join(processed_data_dir, "train_aicity_srgpt.jsonl")
     processed_val_jsonl = os.path.join(processed_data_dir, "val_aicity_srgpt.jsonl")
+    processed_test_jsonl = os.path.join(processed_data_dir, "test_aicity_srgpt.jsonl")
 
     print("Starting AI City Dataset Conversion for SpatialRGPT fine-tuning...")
 
@@ -122,5 +128,10 @@ if __name__ == "__main__":
         convert_aicity_to_spatialrgpt_format(original_val_json, processed_val_jsonl)
     else:
         print(f"ERROR: AI City val.json not found at {original_val_json}. Please check the path.")
+
+    if os.path.exists(original_test_json):
+        convert_aicity_to_spatialrgpt_format(original_test_json, processed_test_jsonl)
+    else:
+        print(f"ERROR: AI City val.json not found at {original_test_json}. Please check the path.")
 
     print("Dataset conversion script finished.")

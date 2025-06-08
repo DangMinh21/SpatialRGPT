@@ -70,9 +70,9 @@ def register_datasets_mixtures():
     PSIW_sft_train = Dataset(
         dataset_name="PSIW_sft_train",
         dataset_type="spatial_warehouse",
-        data_path="PhysicalAI-Spatial-Intelligence-Warehouse/formatted_dataset/train_aicity_srgpt.jsonl",
-        image_path="PhysicalAI-Spatial-Intelligence-Warehouse/train_sample/images",
-        depth_path="PhysicalAI-Spatial-Intelligence-Warehouse/train_sample/depths",
+        data_path="datasets/PhysicalAI-Spatial-Intelligence-Warehouse/formatted_dataset/train_aicity_srgpt.jsonl",
+        image_path="datasets/PhysicalAI-Spatial-Intelligence-Warehouse/train/images",
+        depth_path="datasets/PhysicalAI-Spatial-Intelligence-Warehouse/train/depths",
         description="This is the Dataset of -> training <- data for Warehouse Spatial Intelligence"
     )
     add_dataset(PSIW_sft_train)
@@ -80,9 +80,9 @@ def register_datasets_mixtures():
     PSIW_sft_val = Dataset(
         dataset_name="PSIW_sft_val",
         dataset_type="spatial_warehouse",
-        data_path="PhysicalAI-Spatial-Intelligence-Warehouse/formatted_dataset/val_aicity_srgpt.jsonl",
-        image_path="PhysicalAI-Spatial-Intelligence-Warehouse/val/images",
-        depth_path="PhysicalAI-Spatial-Intelligence-Warehouse/val/depths",
+        data_path="datasets/PhysicalAI-Spatial-Intelligence-Warehouse/formatted_dataset/val_aicity_srgpt.jsonl",
+        image_path="datasets/PhysicalAI-Spatial-Intelligence-Warehouse/val/images",
+        depth_path="datasets/PhysicalAI-Spatial-Intelligence-Warehouse/val/depths",
         description="This is the Dataset of -> Validation <- data for Warehouse Spatial Intelligence"
     )
     add_dataset(PSIW_sft_val)
@@ -90,9 +90,9 @@ def register_datasets_mixtures():
     PSIW_sft_test = Dataset(
         dataset_name="PSIW_sft_test",
         dataset_type="spatial_warehouse",
-        data_path="PhysicalAI-Spatial-Intelligence-Warehouse/formatted_dataset/test_aicity_srgpt.jsonl",
-        image_path="PhysicalAI-Spatial-Intelligence-Warehouse/test/images",
-        depth_path="PhysicalAI-Spatial-Intelligence-Warehouse/test/depths",
+        data_path="datasets/PhysicalAI-Spatial-Intelligence-Warehouse/formatted_dataset/test_aicity_srgpt.jsonl",
+        image_path="datasets/PhysicalAI-Spatial-Intelligence-Warehouse/test/images",
+        depth_path="datasets/PhysicalAI-Spatial-Intelligence-Warehouse/test/depths",
         description="This is the Dataset of -> Test <- data for Warehouse Spatial Intelligence"
     )
     

@@ -1,17 +1,17 @@
 #!/bin/bash
 
 NNODES=1
-NPROC_PER_NODE=3 
+NPROC_PER_NODE=1
 MASTER_PORT=25001 
 
 PRETRAINED_MODEL_PATH="a8cheng/SpatialRGPT-VILA1.5-8B" 
 
 AICITY_DATA_MIXTURE_NAME="PSIW_sft_train" 
 
-OUTPUT_DIR="./checkpoints/spatialrgpt-aicity-qlora-A40-run1"
+OUTPUT_DIR="./checkpoints/SpatialRGPT-VILA1.5-8B-SFT-SpatialWarehouse/checkpoint-999"
 
-PER_DEVICE_TRAIN_BATCH_SIZE=4 
-GRADIENT_ACCUMULATION_STEPS=2 
+PER_DEVICE_TRAIN_BATCH_SIZE=8
+GRADIENT_ACCUMULATION_STEPS=4
 
 NUM_TRAIN_EPOCHS=1 
 LEARNING_RATE=2e-4 
@@ -22,7 +22,7 @@ VISION_TOWER="google/siglip-so400m-patch14-384"
 BITS=4                     # Enable 4-bit quantization for QLoRA
 LORA_ENABLE=True           # Enable LoRA
 LORA_R=64                  # LoRA rank (common values: 8, 16, 32, 64)
-LORA_ALPHA=16              # LoRA alpha (often 2*lora_r or lora_r)
+LORA_ALPHA=64              # LoRA alpha (often 2*lora_r or lora_r)
 LORA_DROPOUT=0.05          # LoRA dropout
 DOUBLE_QUANT=True          # Use double quantization (QLoRA specific)
 QUANT_TYPE="nf4"           # Quantization type: "nf4" (NormalFloat4) or "fp4"
@@ -94,17 +94,18 @@ torchrun --nnodes=$NNODES --nproc_per_node=$NPROC_PER_NODE --master_port=$MASTER
     --evaluation_strategy "no" \
     --eval_steps 10 \
     --save_strategy "steps" \
-    --save_steps 30 \
-    --save_total_limit 2 \
+    --max_steps=2000 \
+    --save_steps 999 \
+    --save_total_limit 1 \
     --learning_rate $LEARNING_RATE \
     --weight_decay 0. \
     --warmup_ratio 0.03 \
     --lr_scheduler_type "cosine" \
-    --logging_steps 2 \
+    --logging_steps 1 \
     --tf32 True \
     --model_max_length 2048 \
     --gradient_checkpointing True \
-    --dataloader_num_workers 4 \
+    --dataloader_num_workers 8 \
     --lazy_preprocess True \
     --vflan_no_system_prompt True \
     --report_to wandb
