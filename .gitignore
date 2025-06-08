@@ -61,7 +61,7 @@ datasets/PhysicalAI-Spatial-Intelligence-Warehouse
 PhysicalAI-Spatial-Intelligence-Warehouse
 datasets/LLaVA-CC3M-Pretrain-595K
 
-# step_to_finetune.txt
+step_to_finetune.txt
 
 checkpoint
 
@@ -71,5 +71,5 @@ sample.txt
 
 log.txt
 
-.*
+.pre-commit-config.yaml
 
