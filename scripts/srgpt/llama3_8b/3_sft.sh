@@ -10,21 +10,23 @@ echo "MASTER_ADDR="$MASTER_ADDR
 echo "JobID: $SLURM_JOB_ID | Full list: $worker_list"
 
 # OUTPUT of stage 2 script
-STAGE2_PATH="./checkpoints/vila-siglip-llama3-8b-vila-v1.5-srgpt-pretrain"
+# STAGE2_PATH="./checkpoints/vila-siglip-llama3-8b-vila-v1.5-srgpt-pretrain"
+STAGE2_PATH="a8cheng/SpatialRGPT-VILA1.5-8B" 
+
 
 n_node=$SLURM_JOB_NUM_NODES
-bs=16
+bs=2
 echo "number of nodes:" $n_node
 echo "per device batch size:" $bs
 echo "node rank:" $SLURM_PROCID
 
-torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
+torchrun --nnodes=1 --nproc_per_node=1 --master_port=25001 \
     --master_addr $MASTER_ADDR --node_rank=$CURRENT_RANK \
     llava/train/train_mem.py \
     --deepspeed ./scripts/zero3.json \
     --model_name_or_path $STAGE2_PATH \
     --version llama_3 \
-    --data_mixture spatialrgpt_ft+SFT_DATA \
+    --data_mixture PSIW_sft_train \
     --vision_tower google/siglip-so400m-patch14-384 \
     --mm_vision_select_feature cls_patch \
     --mm_projector mlp_downsample \
@@ -42,6 +44,7 @@ torchrun --nnodes=$n_node --nproc_per_node=8 --master_port=25001 \
     --bf16 True \
     --output_dir ./checkpoints/vila-siglip-llama3-8b-vila-v1.5-srgpt-sft \
     --num_train_epochs 1 \
+    --max_steps 10
     --per_device_train_batch_size $bs \
     --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 2 \

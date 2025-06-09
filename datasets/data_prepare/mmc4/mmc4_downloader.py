@@ -28,8 +28,8 @@ import aiofiles
 import aiohttp
 from tqdm import tqdm
 
-input_dir = "/dataset/mmc4-test/jsonl"  # path to the MMC4 annotations
-output_dir = "/dataset/mmc4-test/pkl"
+input_dir = "datasets/mmc4-core-ff/mmc4_core_fewer_faces"  # path to the MMC4 annotations
+output_dir = "datasets/mmc4-core-ff/mmc4_core_fewer_faces_pkl"
 
 os.makedirs(output_dir, exist_ok=True)
 

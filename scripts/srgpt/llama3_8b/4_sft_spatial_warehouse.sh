@@ -5,13 +5,16 @@ NPROC_PER_NODE=1
 MASTER_PORT=25001 
 
 PRETRAINED_MODEL_PATH="a8cheng/SpatialRGPT-VILA1.5-8B" 
+echo $PRETRAINED_MODEL_PATH
 
 AICITY_DATA_MIXTURE_NAME="PSIW_sft_train" 
+echo $AICITY_DATA_MIXTURE_NAME
 
-OUTPUT_DIR="./checkpoints/SpatialRGPT-VILA1.5-8B-SFT-SpatialWarehouse/checkpoint-999"
+OUTPUT_DIR="./checkpoints/SpatialRGPT-VILA1.5-8B-SFT-SpatialWarehouse"
+echo $OUTPUT_DIR
 
-PER_DEVICE_TRAIN_BATCH_SIZE=8
-GRADIENT_ACCUMULATION_STEPS=4
+PER_DEVICE_TRAIN_BATCH_SIZE=32
+GRADIENT_ACCUMULATION_STEPS=1
 
 NUM_TRAIN_EPOCHS=1 
 LEARNING_RATE=2e-4 
@@ -21,8 +24,8 @@ VISION_TOWER="google/siglip-so400m-patch14-384"
 # --- QLoRA Specific Parameters ---
 BITS=4                     # Enable 4-bit quantization for QLoRA
 LORA_ENABLE=True           # Enable LoRA
-LORA_R=64                  # LoRA rank (common values: 8, 16, 32, 64)
-LORA_ALPHA=64              # LoRA alpha (often 2*lora_r or lora_r)
+LORA_R=32                  # LoRA rank (common values: 8, 16, 32, 64)
+LORA_ALPHA=32              # LoRA alpha (often 2*lora_r or lora_r)
 LORA_DROPOUT=0.05          # LoRA dropout
 DOUBLE_QUANT=True          # Use double quantization (QLoRA specific)
 QUANT_TYPE="nf4"           # Quantization type: "nf4" (NormalFloat4) or "fp4"
@@ -31,6 +34,7 @@ TUNE_LLM_LORA=True          # Apply LoRA to the LLM
 TUNE_VISION_TOWER=False     # Typically freeze vision tower, or full tune if memory allows and needed
 TUNE_MM_PROJECTOR=True      # Often beneficial to tune the projector
 TUNE_REGION_EXTRACTOR=True  # Also beneficial for spatial tasks
+TUNE_LANGUAGE_MODEL=False
 
 # --- Environment Variables ---
 export WANDB_PROJECT="AI_City_Challenge_SpatialRGPT_FineTune" 
@@ -59,7 +63,7 @@ mkdir -p $OUTPUT_DIR
 
 torchrun --nnodes=$NNODES --nproc_per_node=$NPROC_PER_NODE --master_port=$MASTER_PORT \
     llava/train/train_mem.py \
-    --deepspeed ./scripts/zero3.json \
+    --deepspeed ./scripts/zero2.json \
     --model_name_or_path "$PRETRAINED_MODEL_PATH" \
     --version llama_3 \
     --data_mixture "$AICITY_DATA_MIXTURE_NAME" \
@@ -79,7 +83,7 @@ torchrun --nnodes=$NNODES --nproc_per_node=$NPROC_PER_NODE --master_port=$MASTER
     --quant_type "$QUANT_TYPE" \
     --tune_vision_tower $TUNE_VISION_TOWER \
     --tune_mm_projector $TUNE_MM_PROJECTOR \
-    --tune_language_model False \
+    --tune_language_model $TUNE_LANGUAGE_MODEL \
     --tune_region_extractor $TUNE_REGION_EXTRACTOR \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
@@ -94,7 +98,6 @@ torchrun --nnodes=$NNODES --nproc_per_node=$NPROC_PER_NODE --master_port=$MASTER
     --evaluation_strategy "no" \
     --eval_steps 10 \
     --save_strategy "steps" \
-    --max_steps=2000 \
     --save_steps 999 \
     --save_total_limit 1 \
     --learning_rate $LEARNING_RATE \

@@ -390,8 +390,12 @@ def train():
     global local_rank
 
     # ================= Argumentation: model, data, training ==================
+    print(f"=========== Parsing Arguments ... ============")
     parser = HfArgumentParser((ModelArguments, DataArguments, TrainingArguments))
     model_args, data_args, training_args = parser.parse_args_into_dataclasses()
+    print(f"---> Model args: \n{model_args}")
+    print(f"---> Data args: \n{data_args}")
+    print(f"---> Training args: \n{training_args}")
 
     # ================= Configuration ==================
 
@@ -401,20 +405,22 @@ def train():
 
     local_rank = training_args.local_rank
     compute_dtype = torch.float16 if training_args.fp16 else (torch.bfloat16 if training_args.bf16 else torch.float32)
+    print(f"---> Compute_dtype: {compute_dtype}")
 
     bnb_model_from_pretrained_args = {}
     if training_args.bits in [4, 8]:
+        print(f"---> Using {training_args.bits}")
         from transformers import BitsAndBytesConfig
 
         bnb_model_from_pretrained_args.update(
             dict(
-                # device_map={"": training_args.device},
+                device_map={"": training_args.device},
                 load_in_4bit=training_args.bits == 4,
                 load_in_8bit=training_args.bits == 8,
                 quantization_config=BitsAndBytesConfig(
                     load_in_4bit=training_args.bits == 4,
                     load_in_8bit=training_args.bits == 8,
-                    llm_int8_skip_modules=["mm_projector", "lm_head"], #["mm_projector"], 
+                    llm_int8_skip_modules=["mm_projector", "lm_head"], # ["mm_projector"], #
                     llm_int8_threshold=6.0,
                     llm_int8_has_fp16_weight=False,
                     bnb_4bit_compute_dtype=compute_dtype,
@@ -433,7 +439,7 @@ def train():
         print(f"Sequence parallelism is enabled, SP = {sp_degree}")
 
     # ================= Load model ==================
-
+    print(f"=========== Loading Model ... ============")
     resume_path, continue_training = get_checkpoint_path(training_args.output_dir)
 
     if not continue_training:
@@ -441,6 +447,7 @@ def train():
         exit(0)
 
     if resume_path:
+        print(f"---> Resume path {resume_path}")
         resume_from_checkpoint = True
         if training_args.lora_enable:
             model_cls = LlavaLlamaModel
@@ -452,25 +459,31 @@ def train():
             model_cls = eval(config.architectures[0])
     else:
         ## first time training
+        print(f"---> First time training")
         resume_from_checkpoint = False
         if "mpt" in model_args.model_name_or_path:
+            print(f"---> mpt model")
             config = AutoConfig.from_pretrained(model_args.model_name_or_path, trust_remote_code=True)
             config.attn_config["attn_impl"] = training_args.mpt_attn_impl
             model_cls = LlavaMPTForCausalLM
         elif "mistral" in model_args.model_name_or_path.lower():
+            print(f"---> mistral model")
             config = LlavaMistralConfig.from_pretrained(model_args.model_name_or_path)
             config._attn_implementation = "flash_attention_2"
             model_cls = LlavaMistralForCausalLM
         elif "mixtral" in model_args.model_name_or_path.lower():
+            print(f"---> mixtral model")
             config = LlavaMixtralConfig.from_pretrained(model_args.model_name_or_path)
             config._attn_implementation = "flash_attention_2"
             model_cls = LlavaMixtralForCausalLM
         elif "gemma" in model_args.model_name_or_path.lower():
+            print(f"---> gemma model")
             config = LlavaGemmaConfig.from_pretrained(model_args.model_name_or_path)
             config._attn_implementation = "flash_attention_2"
             model_cls = LlavaGemmaForCausalLM
         else:
             ## llm and default multimodal model
+            print(f"---> default model")
             model_cls = LlavaLlamaModel
             config = LlavaLlamaConfig.from_pretrained(model_args.model_name_or_path, resume=resume_from_checkpoint)
         if getattr(config, "resume_path", None) is not None:
@@ -478,6 +491,7 @@ def train():
 
     ## extra configurations
     prepare_config_for_training(config, model_args, training_args, data_args)
+    print(f"---> Initial model ...")
     model = model_cls(
         config=config,
         attn_implementation="flash_attention_2",
@@ -555,6 +569,7 @@ def train():
             model.get_input_embeddings().register_forward_hook(make_inputs_require_grad)
 
     if training_args.lora_enable:
+        print(f"---> Lora enable, prepare config ...")
         from peft import LoraConfig, PeftModel, get_peft_model
 
         lora_config = LoraConfig(
@@ -596,6 +611,7 @@ def train():
         model.print_trainable_parameters()
 
     # currently assume fft for mm projector
+    print(f"---> Set tune parameters")
     if training_args.lora_enable:
         if not training_args.lora_llm:
             model.get_llm().requires_grad_(training_args.tune_language_model)
@@ -637,10 +653,11 @@ def train():
     mprint(model)
 
     # ================= Tokenizer ==================
-    
+    print(f"=========== Setting up Tokenizer ... ============")
     # @yunhao: tokenizer instantiation is moved into build_llm
     tokenizer = model.tokenizer
     # @yunhao: may move this block into method "build_llm"
+    print(f"---> Version: {model_args.version}")
     if model_args.version == "v0":
         if tokenizer.pad_token is None:
             smart_tokenizer_and_embedding_resize(
@@ -662,6 +679,7 @@ def train():
             conversation_lib.default_conversation = conversation_lib.conv_templates[model_args.version]
         else:
             conversation_lib.default_conversation = conversation_lib.conv_templates["vicuna_v1"]
+        print(f"---> Conversation Template:\n{conversation_lib.default_conversation}")
 
     # kentang-mit@: It will be useful in on-the-fly packing
     model.llm.pad_token_id = tokenizer.pad_token_id
@@ -671,7 +689,9 @@ def train():
         model.base_model.model.llm.pad_token_id = tokenizer.pad_token_id
 
     # ================= Vision tower ==================
-
+    
+    print(f"=========== Setting up Vision Tower ... ============")
+    
     vision_tower = model.get_vision_tower()
     if vision_tower is not None:
         data_args.image_processor = vision_tower.image_processor
@@ -693,6 +713,7 @@ def train():
         training_args.use_im_start_end = model_args.mm_use_im_start_end
         model.config.mm_use_im_patch_token = model_args.mm_use_im_patch_token
         model.initialize_vision_tokenizer(model_args, tokenizer=tokenizer)
+        
     ## TODO pay attention to quantize
     if training_args.bits in [4, 8]:
         from peft.tuners.lora import LoraLayer
@@ -709,7 +730,8 @@ def train():
                         module = module.to(torch.bfloat16)
                         
     # ================= Prepare Dataset ==================
-
+    print(f"=========== Preparing Dataset, DataCollator ... ============")
+    
     data_module = make_supervised_data_module(
         tokenizer=tokenizer,
         data_args=data_args,
@@ -717,11 +739,13 @@ def train():
     )
 
     # ================= Start Training ==================
+    print(f"=========== START TRAINING ============")
 
     # Add a training step_end callback to check whether to autosuspend.
     callbacks = [AutoResumeCallback()]
 
     if training_args.dpo:
+        print(f"---> Using DPO")
         ref_model = model_cls(
             config=config,
             attn_implementation="flash_attention_2",
@@ -754,6 +778,7 @@ def train():
             data_collator=data_collator,
         )
     else:
+        print(f"Using LlaVaTrainer")
         trainer = LLaVATrainer(model=model, tokenizer=tokenizer, args=training_args, callbacks=callbacks, **data_module)
     print(
         "length of dataloader:",
@@ -772,6 +797,8 @@ def train():
     trainer.save_state()
 
     # ================= Save model ==================
+    print(f"=========== Saving Model ============")
+    
     
     model.llm.config.use_cache = True
     model.config.resume_path = model.config._name_or_path = training_args.output_dir
@@ -788,6 +815,8 @@ def train():
             )
     else:
         safe_save_model_for_hf_trainer(trainer=trainer, output_dir=training_args.output_dir)
+    print(f"=========== FINISH TRAINING :)) ============")
+    
 
 
 if __name__ == "__main__":
