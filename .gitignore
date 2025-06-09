@@ -75,4 +75,11 @@ log.txt
 
 datasets/mmc4-core-ff
 
+step_to_finetune.txt
 
+datasets/OpenSpatialDataset
+
+datasets/OpenSpatialDataset/annotations
+datasets/OpenSpatialDataset/images
+datasets/OpenSpatialDataset/metadata
+datasets/OpenSpatialDataset/splits
