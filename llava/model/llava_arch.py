@@ -47,6 +47,10 @@ from llava.model.language_model.builder import build_llm_and_tokenizer
 from llava.model.multimodal_encoder.builder import build_vision_tower
 from llava.model.multimodal_projector.builder import build_mm_projector
 from llava.model.region_extractor.builder import build_region_extractor
+# add builder for enhanced extractor
+from llava.model.region_extractor.builder import build_region_enhancer, build_region_classifier
+from llava.model.region_extractor.region_heads import RegionClassifierLoss
+
 from llava.model.utils import get_model_config
 from llava.train.sequence_parallel import get_pg_manager
 from llava.train.sequence_parallel.globals import get_ulysess_sp_pg
@@ -100,7 +104,30 @@ class LlavaMetaModel(ABC):
         self.vision_tower = build_vision_tower(vision_tower_cfg, config)
         self.mm_projector = build_mm_projector(mm_projector_cfg, config)
         self.region_extractor = build_region_extractor(region_extractor_cfg, config)
-
+        
+        # add for enhanced feature extractor
+        
+        # Khởi tạo RegionFeatureExtractor
+        if hasattr(config, "enable_region_enhancer") and config.enable_region_enhancer:
+            self.region_enhancer = build_region_enhancer(
+                config.region_enhancer_cfg,
+                config
+            )
+        else:
+            self.region_enhancer = None
+            
+        # Khởi tạo RegionClassifier
+        if hasattr(config, "enable_region_classifier") and config.enable_region_classifier:
+            self.region_classifier = build_region_classifier(
+                config.region_classifier_cfg,
+                config
+            )
+            self.region_classifier_loss = RegionClassifierLoss()
+        else:
+            self.region_classifier = None
+            self.region_classifier_loss = None
+        # =================
+        
         self.post_config()
         self.is_loaded = True
 
@@ -114,7 +141,7 @@ class LlavaMetaModel(ABC):
 
     ## FIXME we will use this function to load model in the future
     @classmethod
-    def load_pretrained(cls, model_path_or_config, *args, **kwargs):
+    def load_pretrained(self, cls, model_path_or_config, *args, **kwargs):
         kwargs.pop("config", None)
 
         if isinstance(model_path_or_config, str):
@@ -233,6 +260,18 @@ class LlavaMetaModel(ABC):
                 state_dict=region_extractor_state_dict,
             )
             self.config.region_extractor_cfg = self.region_extractor.config
+            
+        # if self.get_region_enhancer():
+        #     print(f"saving region_enhancer to {osp.join(output_dir, 'region_enhancer')}")
+        #     self.region_enhancer.config._name_or_path = osp.join(output_dir, "region_enhancer")
+        #     region_enhancer_state_dict = OrderedDict(
+        #         {k.split("region_enhancer.")[-1]: v for k, v in state_dict.items() if "region_enhancer" in k}
+        #     )
+        #     self.region_enhancer.save_pretrained(
+        #         os.path.join(output_dir, "region_enhancer"),
+        #         state_dict=region_enhancer_state_dict,
+        #     )
+        #     self.config.region_enhancer_cfg = self.region_enhancer.config
 
         ## update and save top-level config
         if hasattr(self.config, "enable_region") and self.config.enable_region:
@@ -276,6 +315,17 @@ class LlavaMetaModel(ABC):
         if type(region_extractor) is list:
             region_extractor = region_extractor[0]
         return region_extractor
+    
+    def get_region_enhancer(self):
+        region_enhancer = getattr(self, "region_enhancer", None)
+        if type(region_enhancer) is list:
+            region_enhancer = region_enhancer[0]
+        return region_enhancer
+    def get_region_classifer(self):
+        region_classifier = getattr(self, "region_classifier", None)
+        if type(region_classifier) is list:
+            region_classifier = region_classifier[0]
+        return region_classifier
 
     def post_config(self):
         self.training = self.get_llm().training
@@ -394,6 +444,20 @@ class LlavaMetaForCausalLM(ABC):
                 depths = torch.cat(depths, dim=0)
             elif depths.ndim == 5:  # batch_size x seq_len x image_channels
                 depths = depths.flatten(0, 1)
+                
+        def split_enhanced_features(enhanced_features):
+            """
+            Tách enhanced_features thành mask_embeds và depth_embeds
+            """
+            if enhanced_features is None:
+                return None, None
+                
+            # Logic tách features dựa trên cấu trúc output của RegionFeatureExtractor
+            N = enhanced_features.shape[1] // 2
+            mask_embeds = enhanced_features[:, :N]
+            depth_embeds = enhanced_features[:, N:]
+            
+            return mask_embeds, depth_embeds
 
         tower_features = self.get_vision_tower()(images)
         tower_features = tower_features.to(self.device)
@@ -407,8 +471,30 @@ class LlavaMetaForCausalLM(ABC):
                 mask_embeds, depth_embeds = self.get_region_extractor()(hres_tower_features, None, masks)
         else:
             lres_tower_features = tower_features
+            
+            # add process through RegionFeatureExtractor
+            if self.region_enhancer is not None:
+                enhanced_features = self.region_enhancer(
+                    rgb_features = mask_embeds,
+                    depth_features = depth_embeds if depth_embeds is not None else None,
+                    image_features = lres_tower_features
+                    )
+                mask_embeds, depth_embeds = split_enhanced_features(enhanced_features)
+                
+                # rgb and depth projector wiht enhance
+                mask_embeds = self.get_region_extractor().rgb_projector(mask_embeds)
+                depth_embeds = self.get_region_extractor().depth_projector(depth_embeds)
+            else:
+                # rgb and depth projector not enhance
+                mask_embeds = self.get_region_extractor().rgb_projector(mask_embeds)
+                depth_embeds = self.get_region_extractor().depth_projector(depth_embeds)
+                
+            if self.region_classifier is not None:
+                self.region_logits = self.region_classifier(enhanced_features)
 
         image_features = self.get_mm_projector()(lres_tower_features).to(self.device)
+        
+        
 
         # Note (kentang-mit@): image start / end is not implemented here to support pretraining.
         if getattr(self.config, "turn_mm_projector", False) and getattr(self.config, "mm_use_im_start_end", False):
@@ -952,3 +1038,4 @@ class LlavaMetaForCausalLM(ABC):
                     p.requires_grad = False
                 for p in self.get_output_embeddings().parameters():
                     p.requires_grad = False
+                    

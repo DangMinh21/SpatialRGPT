@@ -42,6 +42,35 @@ from .builder import build_llm_and_tokenizer
 
 class LlavaLlamaConfig(LlavaConfig):
     model_type = "llava_llama"
+    
+    def __init__(
+        self,
+        # ... các tham số hiện tại ...
+        # Thêm cấu hình mới cho region enhancer
+        enable_region_enhancer: bool = True,
+        region_enhancer_cfg: dict = {
+            'num_heads': 8,
+            'num_transformer_layers': 6,
+            'num_cross_attn_layers': 1,
+            'dropout': 0.1,
+            'activation': 'gelu'
+        },
+        # Thêm cấu hình cho region classifier
+        enable_region_classifier: bool = True,
+        region_classifier_cfg: dict = {
+            'num_classes': 80,  # Số lượng classes cần phân loại
+            'dropout': 0.1
+        },
+        **kwargs
+    ):
+        super().__init__(
+            # ... các tham số hiện tại ...
+            enable_region_enhancer=enable_region_enhancer,
+            region_enhancer_cfg=region_enhancer_cfg,
+            enable_region_classifier=enable_region_classifier,
+            region_classifier_cfg=region_classifier_cfg,
+            **kwargs
+        )
 
 
 ## FIXME we will follow the convention to add a new class for CausalLM in the future
@@ -109,6 +138,8 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
         seqlens_in_batch: Optional[torch.LongTensor] = None,
         inputs_embeds: Optional[torch.FloatTensor] = None,
         labels: Optional[torch.LongTensor] = None,
+        # Add for RegionHead
+        region_labels: Optional[torch.LongTensor] = None,
         use_cache: Optional[bool] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
@@ -186,6 +217,15 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
                 output_hidden_states=output_hidden_states,
                 return_dict=return_dict,
             )
+            # Compute region loss
+            if self.region_classifier is not None and hasattr(self, "region_logits"):
+                total_loss = outputs.loss
+                
+                # region classification loss
+                region_loss = self.region_classifier_loss(self.region_logits, region_labels)
+                total_loss = 1 * total_loss + 0.2 * region_loss
+                
+            outputs.loss = total_loss
 
         if dpo_forward:
             return outputs.logits, new_labels

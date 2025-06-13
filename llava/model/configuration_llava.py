@@ -29,6 +29,12 @@ class LlavaConfig(PretrainedConfig):
         s2=None,
         s2_scales=None,
         s2_max_split_size=None,
+        # add config for region_feature_extractor
+        
+        enable_region_enhancer=None,
+        region_enhancer_cfg=None,
+        enable_region_classifier=None,
+        region_classifier_cfg=None,
         **kwargs
     ):
         super().__init__()
@@ -57,3 +63,9 @@ class LlavaConfig(PretrainedConfig):
         self.s2 = s2
         self.s2_scales = s2_scales
         self.s2_max_split_size = s2_max_split_size
+
+        # add config for region_feature_extractor
+        self.enable_region_enhencer = enable_region_enhancer
+        self.region_enhancer_cfg = region_enhancer_cfg
+        self.enable_region_classifier =enable_region_classifier
+        self.region_classifier_cfg = region_classifier_cfg

@@ -70,7 +70,7 @@ def register_datasets_mixtures():
     PSIW_sft_train = Dataset(
         dataset_name="PSIW_sft_train",
         dataset_type="spatial_warehouse",
-        data_path="datasets/PhysicalAI-Spatial-Intelligence-Warehouse/formatted_dataset/train_aicity_srgpt.jsonl",
+        data_path="datasets/PhysicalAI-Spatial-Intelligence-Warehouse/data_for_region_classification/train_data_added_region_label_formatted.jsonl",
         image_path="datasets/PhysicalAI-Spatial-Intelligence-Warehouse/train/images",
         depth_path="datasets/PhysicalAI-Spatial-Intelligence-Warehouse/train/depths",
         description="This is the Dataset of -> training <- data for Warehouse Spatial Intelligence"

@@ -51,3 +51,1143 @@ git clone https://github.com/DangMinh21/SpatialRGPT.git
 └── test/
     ├── images/
     └── depths/
+
+4_QLoRA_script =======================
+(base) root@7416268a9481:/dang_van_minh_120/workspace/SpatialRGPT# conda activate srgpt
+(srgpt) root@7416268a9481:/dang_van_minh_120/workspace/SpatialRGPT# bash scripts/srgpt/llama3_8b/4_sft_spatial_warehouse.sh 
+a8cheng/SpatialRGPT-VILA1.5-8B
+PSIW_sft_train
+./checkpoints/SpatialRGPT-VILA1.5-8B-SFT-SpatialWarehouse
+Starting QLoRA Fine-tuning for AI City Challenge on A40...
+  Number of Nodes: 1
+  Number of GPUs per Node: 1
+  Pre-trained Model Path: a8cheng/SpatialRGPT-VILA1.5-8B
+  Data Mixture: PSIW_sft_train
+  Output Directory: ./checkpoints/SpatialRGPT-VILA1.5-8B-SFT-SpatialWarehouse
+  Per Device Batch Size: 32
+  Gradient Accumulation Steps: 1
+  Effective Batch Size: 32
+  Number of Epochs: 1
+  Learning Rate: 2e-4
+  QLoRA: Enabled (Bits: 4, LoRA R: 32, LoRA Alpha: 32)
+[2025-06-09 04:58:50,914] [INFO] [real_accelerator.py:110:get_accelerator] Setting ds_accelerator to cuda (auto detect)
+Did not find AutoResume SDK!
+=========== Parsing Arguments ... ============
+[2025-06-09 04:58:51,946] [WARNING] [comm.py:152:init_deepspeed_backend] NCCL backend in DeepSpeed not yet implemented
+[2025-06-09 04:58:51,946] [INFO] [comm.py:594:init_distributed] cdb=None
+[2025-06-09 04:58:51,946] [INFO] [comm.py:625:init_distributed] Initializing TorchBackend in DeepSpeed with backend nccl
+---> Model args: 
+ModelArguments(version='llama_3', model_name_or_path='a8cheng/SpatialRGPT-VILA1.5-8B', vision_tower='google/siglip-so400m-patch14-384', mm_projector='mlp_downsample', region_extractor='regiongpt', mm_use_im_start_end=False, mm_use_im_patch_token=False, mm_vision_select_layer=-2, mm_vision_select_feature='cls_patch', vision_resolution=-1, interpolate_mode='linear', drop_path_rate=0.0, mlp_path=None, s2=False, s2_scales='336,672,1008', s2_max_split_size=336, enable_region=True, enable_depth=True)
+---> Data args: 
+DataArguments(data_path=None, lazy_preprocess=True, is_multimodal=False, image_folder=None, image_aspect_ratio='resize', data_mixture='PSIW_sft_train', eval_data_mixture=None, vflan_no_system_prompt=True, downsample_video=False, num_video_frames=8, fps=0.0)
+---> Training args: 
+TrainingArguments(
+_n_gpu=1,
+adafactor=False,
+adam_beta1=0.9,
+adam_beta2=0.999,
+adam_epsilon=1e-08,
+auto_find_batch_size=False,
+bf16=True,
+bf16_full_eval=False,
+bits=4,
+cache_dir=None,
+data_seed=None,
+dataloader_drop_last=False,
+dataloader_num_workers=8,
+dataloader_persistent_workers=False,
+dataloader_pin_memory=True,
+ddp_backend=None,
+ddp_broadcast_buffers=None,
+ddp_bucket_cap_mb=None,
+ddp_find_unused_parameters=None,
+ddp_timeout=1800,
+debug=[],
+deepspeed=./scripts/zero2.json,
+disable_tqdm=False,
+dispatch_batches=None,
+do_eval=False,
+do_predict=False,
+do_train=False,
+double_quant=True,
+dpo=False,
+dpo_beta=0.1,
+eval_accumulation_steps=None,
+eval_delay=0,
+eval_steps=10.0,
+evaluation_strategy=no,
+fp16=False,
+fp16_backend=auto,
+fp16_full_eval=False,
+fp16_opt_level=O1,
+fsdp=[],
+fsdp_config={'min_num_params': 0, 'xla': False, 'xla_fsdp_grad_ckpt': False},
+fsdp_min_num_params=0,
+fsdp_transformer_layer_cls_to_wrap=None,
+full_determinism=False,
+gradient_accumulation_steps=1,
+gradient_checkpointing=True,
+gradient_checkpointing_kwargs=None,
+greater_is_better=None,
+group_by_length=False,
+group_by_modality_length=False,
+half_precision_backend=auto,
+hub_always_push=False,
+hub_model_id=None,
+hub_private_repo=False,
+hub_strategy=every_save,
+hub_token=<HUB_TOKEN>,
+ignore_data_skip=False,
+include_inputs_for_metrics=False,
+include_num_input_tokens_seen=False,
+include_tokens_per_second=False,
+jit_mode_eval=False,
+label_names=None,
+label_smoothing_factor=0.0,
+learning_rate=0.0002,
+length_column_name=length,
+load_best_model_at_end=False,
+local_rank=0,
+log_level=passive,
+log_level_replica=warning,
+log_on_each_node=True,
+logging_dir=./checkpoints/SpatialRGPT-VILA1.5-8B-SFT-SpatialWarehouse/runs/Jun09_04-58-51_7416268a9481,
+logging_first_step=False,
+logging_nan_inf_filter=True,
+logging_steps=1.0,
+logging_strategy=steps,
+lora_alpha=32,
+lora_bias=none,
+lora_dropout=0.05,
+lora_enable=True,
+lora_llm=True,
+lora_r=32,
+lora_vt=False,
+lora_weight_path=,
+lr_scheduler_kwargs={},
+lr_scheduler_type=cosine,
+max_grad_norm=1.0,
+max_steps=-1,
+metric_for_best_model=None,
+mm_projector_lr=None,
+model_dtype=torch.bfloat16,
+model_max_length=2048,
+mp_parameters=,
+mpt_attn_impl=triton,
+neftune_noise_alpha=None,
+no_cuda=False,
+num_train_epochs=1.0,
+optim=adamw_torch,
+optim_args=None,
+output_dir=./checkpoints/SpatialRGPT-VILA1.5-8B-SFT-SpatialWarehouse,
+overwrite_output_dir=False,
+past_index=-1,
+per_device_eval_batch_size=2,
+per_device_train_batch_size=32,
+pre_terminate_time=10,
+prediction_loss_only=False,
+push_to_hub=False,
+push_to_hub_model_id=None,
+push_to_hub_organization=None,
+push_to_hub_token=<PUSH_TO_HUB_TOKEN>,
+quant_type=nf4,
+ray_scope=last,
+remove_unused_columns=False,
+report_to=['wandb'],
+resume_from_checkpoint=None,
+run_name=./checkpoints/SpatialRGPT-VILA1.5-8B-SFT-SpatialWarehouse,
+save_on_each_node=False,
+save_only_model=False,
+save_safetensors=True,
+save_steps=999,
+save_strategy=steps,
+save_total_limit=1,
+seed=42,
+seq_parallel_ring_size=-1,
+seq_parallel_size=-1,
+skip_memory_metrics=True,
+split_batches=False,
+tf32=True,
+torch_compile=False,
+torch_compile_backend=None,
+torch_compile_mode=None,
+torchdynamo=None,
+total_time_limit=-1,
+tpu_metrics_debug=False,
+tpu_num_cores=None,
+tune_language_model=False,
+tune_mm_projector=True,
+tune_region_extractor=True,
+tune_vision_tower=False,
+use_cpu=False,
+use_dora=False,
+use_ipex=False,
+use_legacy_prediction_loop=False,
+use_mps_device=False,
+warmup_ratio=0.03,
+warmup_steps=0,
+weight_decay=0.0,
+)
+---> Compute_dtype: torch.bfloat16
+---> Using 4
+=========== Loading Model ... ============
+---> First time training
+---> default model
+/root/miniconda3/envs/srgpt/lib/python3.10/site-packages/huggingface_hub/file_download.py:943: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+---> Initial model ...
+Fetching 20 files: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 20/20 [00:00<00:00, 16048.61it/s]
+Loading checkpoint shards: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:22<00:00,  5.59s/it]
+Special tokens have been added in the vocabulary, make sure the associated word embeddings are fine-tuned or trained.
+Resuming region extractor from:  /root/.cache/huggingface/hub/models--a8cheng--SpatialRGPT-VILA1.5-8B/snapshots/64df7902f82b5053f5a53455095805e6de3a1f87/region_extractor
+LlavaLlamaModel(
+  (llm): LlamaForCausalLM(
+    (model): LlamaModel(
+      (embed_tokens): Embedding(128259, 4096)
+      (layers): ModuleList(
+        (0-31): 32 x LlamaDecoderLayer(
+          (self_attn): LlamaFlashAttention2(
+            (q_proj): Linear4bit(in_features=4096, out_features=4096, bias=False)
+            (k_proj): Linear4bit(in_features=4096, out_features=1024, bias=False)
+            (v_proj): Linear4bit(in_features=4096, out_features=1024, bias=False)
+            (o_proj): Linear4bit(in_features=4096, out_features=4096, bias=False)
+            (rotary_emb): LlamaRotaryEmbedding()
+          )
+          (mlp): LlamaMLP(
+            (gate_proj): Linear4bit(in_features=4096, out_features=14336, bias=False)
+            (up_proj): Linear4bit(in_features=4096, out_features=14336, bias=False)
+            (down_proj): Linear4bit(in_features=14336, out_features=4096, bias=False)
+            (act_fn): SiLU()
+          )
+          (input_layernorm): LlamaRMSNorm()
+          (post_attention_layernorm): LlamaRMSNorm()
+        )
+      )
+      (norm): LlamaRMSNorm()
+    )
+    (lm_head): Linear(in_features=4096, out_features=128259, bias=False)
+  )
+  (vision_tower): SiglipVisionTower(
+    (vision_tower): SiglipVisionModel(
+      (vision_model): SiglipVisionTransformer(
+        (embeddings): SiglipVisionEmbeddings(
+          (patch_embedding): Conv2d(3, 1152, kernel_size=(14, 14), stride=(14, 14), padding=valid)
+          (position_embedding): Embedding(729, 1152)
+        )
+        (encoder): SiglipEncoder(
+          (layers): ModuleList(
+            (0-26): 27 x SiglipEncoderLayer(
+              (self_attn): SiglipAttention(
+                (k_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                (v_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                (q_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                (out_proj): Linear(in_features=1152, out_features=1152, bias=True)
+              )
+              (layer_norm1): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+              (mlp): SiglipMLP(
+                (activation_fn): PytorchGELUTanh()
+                (fc1): Linear(in_features=1152, out_features=4304, bias=True)
+                (fc2): Linear(in_features=4304, out_features=1152, bias=True)
+              )
+              (layer_norm2): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+            )
+          )
+        )
+        (post_layernorm): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+        (head): SiglipMultiheadAttentionPoolingHead(
+          (attention): MultiheadAttention(
+            (out_proj): NonDynamicallyQuantizableLinear(in_features=1152, out_features=1152, bias=True)
+          )
+          (layernorm): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+          (mlp): SiglipMLP(
+            (activation_fn): PytorchGELUTanh()
+            (fc1): Linear(in_features=1152, out_features=4304, bias=True)
+            (fc2): Linear(in_features=4304, out_features=1152, bias=True)
+          )
+        )
+      )
+    )
+  )
+  (mm_projector): MultimodalProjector(
+    (layers): Sequential(
+      (0): DownSampleBlock()
+      (1): LayerNorm((4608,), eps=1e-05, elementwise_affine=True)
+      (2): Linear(in_features=4608, out_features=4096, bias=True)
+      (3): GELU(approximate='none')
+      (4): Linear(in_features=4096, out_features=4096, bias=True)
+    )
+  )
+  (region_extractor): RegionExtractor(
+    (mask_pooling): MaskPooling()
+    (feature_refinement_module): Sequential(
+      (0): ConvTranspose2d(1152, 1152, kernel_size=(2, 2), stride=(2, 2))
+      (1): LayerNorm2d()
+      (2): GELU(approximate='none')
+      (3): ConvTranspose2d(1152, 1152, kernel_size=(2, 2), stride=(2, 2))
+      (4): GELU(approximate='none')
+    )
+    (ada_pooling): AdaptiveAvgPool2d(output_size=27)
+    (rgb_projector): Linear(in_features=1152, out_features=4096, bias=True)
+    (depth_projector): Linear(in_features=1152, out_features=4096, bias=True)
+  )
+)
+WARNING:root:You are setting tunable parameters for the model. Previous args include 'freeze_backbone' and 'tune_mm_mlp_adapter' are deprecated.
+ Notice: default value of tune_xxx is False, which means you would not tune this part.
+---> Lora enable, prepare config ...
+Adding LoRA adapters...
+PeftModelForCausalLM(
+  (base_model): LoraModel(
+    (model): LlavaLlamaModel(
+      (llm): LlamaForCausalLM(
+        (model): LlamaModel(
+          (embed_tokens): Embedding(128259, 4096)
+          (layers): ModuleList(
+            (0-31): 32 x LlamaDecoderLayer(
+              (self_attn): LlamaFlashAttention2(
+                (q_proj): lora.Linear(
+                  (base_layer): Linear4bit(in_features=4096, out_features=4096, bias=False)
+                  (lora_dropout): ModuleDict(
+                    (default): Dropout(p=0.05, inplace=False)
+                  )
+                  (lora_A): ModuleDict(
+                    (default): Linear(in_features=4096, out_features=32, bias=False)
+                  )
+                  (lora_B): ModuleDict(
+                    (default): Linear(in_features=32, out_features=4096, bias=False)
+                  )
+                  (lora_embedding_A): ParameterDict()
+                  (lora_embedding_B): ParameterDict()
+                )
+                (k_proj): lora.Linear(
+                  (base_layer): Linear4bit(in_features=4096, out_features=1024, bias=False)
+                  (lora_dropout): ModuleDict(
+                    (default): Dropout(p=0.05, inplace=False)
+                  )
+                  (lora_A): ModuleDict(
+                    (default): Linear(in_features=4096, out_features=32, bias=False)
+                  )
+                  (lora_B): ModuleDict(
+                    (default): Linear(in_features=32, out_features=1024, bias=False)
+                  )
+                  (lora_embedding_A): ParameterDict()
+                  (lora_embedding_B): ParameterDict()
+                )
+                (v_proj): lora.Linear(
+                  (base_layer): Linear4bit(in_features=4096, out_features=1024, bias=False)
+                  (lora_dropout): ModuleDict(
+                    (default): Dropout(p=0.05, inplace=False)
+                  )
+                  (lora_A): ModuleDict(
+                    (default): Linear(in_features=4096, out_features=32, bias=False)
+                  )
+                  (lora_B): ModuleDict(
+                    (default): Linear(in_features=32, out_features=1024, bias=False)
+                  )
+                  (lora_embedding_A): ParameterDict()
+                  (lora_embedding_B): ParameterDict()
+                )
+                (o_proj): lora.Linear(
+                  (base_layer): Linear4bit(in_features=4096, out_features=4096, bias=False)
+                  (lora_dropout): ModuleDict(
+                    (default): Dropout(p=0.05, inplace=False)
+                  )
+                  (lora_A): ModuleDict(
+                    (default): Linear(in_features=4096, out_features=32, bias=False)
+                  )
+                  (lora_B): ModuleDict(
+                    (default): Linear(in_features=32, out_features=4096, bias=False)
+                  )
+                  (lora_embedding_A): ParameterDict()
+                  (lora_embedding_B): ParameterDict()
+                )
+                (rotary_emb): LlamaRotaryEmbedding()
+              )
+              (mlp): LlamaMLP(
+                (gate_proj): lora.Linear(
+                  (base_layer): Linear4bit(in_features=4096, out_features=14336, bias=False)
+                  (lora_dropout): ModuleDict(
+                    (default): Dropout(p=0.05, inplace=False)
+                  )
+                  (lora_A): ModuleDict(
+                    (default): Linear(in_features=4096, out_features=32, bias=False)
+                  )
+                  (lora_B): ModuleDict(
+                    (default): Linear(in_features=32, out_features=14336, bias=False)
+                  )
+                  (lora_embedding_A): ParameterDict()
+                  (lora_embedding_B): ParameterDict()
+                )
+                (up_proj): lora.Linear(
+                  (base_layer): Linear4bit(in_features=4096, out_features=14336, bias=False)
+                  (lora_dropout): ModuleDict(
+                    (default): Dropout(p=0.05, inplace=False)
+                  )
+                  (lora_A): ModuleDict(
+                    (default): Linear(in_features=4096, out_features=32, bias=False)
+                  )
+                  (lora_B): ModuleDict(
+                    (default): Linear(in_features=32, out_features=14336, bias=False)
+                  )
+                  (lora_embedding_A): ParameterDict()
+                  (lora_embedding_B): ParameterDict()
+                )
+                (down_proj): lora.Linear(
+                  (base_layer): Linear4bit(in_features=14336, out_features=4096, bias=False)
+                  (lora_dropout): ModuleDict(
+                    (default): Dropout(p=0.05, inplace=False)
+                  )
+                  (lora_A): ModuleDict(
+                    (default): Linear(in_features=14336, out_features=32, bias=False)
+                  )
+                  (lora_B): ModuleDict(
+                    (default): Linear(in_features=32, out_features=4096, bias=False)
+                  )
+                  (lora_embedding_A): ParameterDict()
+                  (lora_embedding_B): ParameterDict()
+                )
+                (act_fn): SiLU()
+              )
+              (input_layernorm): LlamaRMSNorm()
+              (post_attention_layernorm): LlamaRMSNorm()
+            )
+          )
+          (norm): LlamaRMSNorm()
+        )
+        (lm_head): Linear(in_features=4096, out_features=128259, bias=False)
+      )
+      (vision_tower): SiglipVisionTower(
+        (vision_tower): SiglipVisionModel(
+          (vision_model): SiglipVisionTransformer(
+            (embeddings): SiglipVisionEmbeddings(
+              (patch_embedding): Conv2d(3, 1152, kernel_size=(14, 14), stride=(14, 14), padding=valid)
+              (position_embedding): Embedding(729, 1152)
+            )
+            (encoder): SiglipEncoder(
+              (layers): ModuleList(
+                (0-26): 27 x SiglipEncoderLayer(
+                  (self_attn): SiglipAttention(
+                    (k_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                    (v_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                    (q_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                    (out_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                  )
+                  (layer_norm1): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+                  (mlp): SiglipMLP(
+                    (activation_fn): PytorchGELUTanh()
+                    (fc1): Linear(in_features=1152, out_features=4304, bias=True)
+                    (fc2): Linear(in_features=4304, out_features=1152, bias=True)
+                  )
+                  (layer_norm2): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+                )
+              )
+            )
+            (post_layernorm): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+            (head): SiglipMultiheadAttentionPoolingHead(
+              (attention): MultiheadAttention(
+                (out_proj): NonDynamicallyQuantizableLinear(in_features=1152, out_features=1152, bias=True)
+              )
+              (layernorm): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+              (mlp): SiglipMLP(
+                (activation_fn): PytorchGELUTanh()
+                (fc1): Linear(in_features=1152, out_features=4304, bias=True)
+                (fc2): Linear(in_features=4304, out_features=1152, bias=True)
+              )
+            )
+          )
+        )
+      )
+      (mm_projector): MultimodalProjector(
+        (layers): Sequential(
+          (0): DownSampleBlock()
+          (1): LayerNorm((4608,), eps=1e-05, elementwise_affine=True)
+          (2): Linear(in_features=4608, out_features=4096, bias=True)
+          (3): GELU(approximate='none')
+          (4): Linear(in_features=4096, out_features=4096, bias=True)
+        )
+      )
+      (region_extractor): RegionExtractor(
+        (mask_pooling): MaskPooling()
+        (feature_refinement_module): Sequential(
+          (0): ConvTranspose2d(1152, 1152, kernel_size=(2, 2), stride=(2, 2))
+          (1): LayerNorm2d()
+          (2): GELU(approximate='none')
+          (3): ConvTranspose2d(1152, 1152, kernel_size=(2, 2), stride=(2, 2))
+          (4): GELU(approximate='none')
+        )
+        (ada_pooling): AdaptiveAvgPool2d(output_size=27)
+        (rgb_projector): lora.Linear(
+          (base_layer): Linear(in_features=1152, out_features=4096, bias=True)
+          (lora_dropout): ModuleDict(
+            (default): Dropout(p=0.05, inplace=False)
+          )
+          (lora_A): ModuleDict(
+            (default): Linear(in_features=1152, out_features=32, bias=False)
+          )
+          (lora_B): ModuleDict(
+            (default): Linear(in_features=32, out_features=4096, bias=False)
+          )
+          (lora_embedding_A): ParameterDict()
+          (lora_embedding_B): ParameterDict()
+        )
+        (depth_projector): lora.Linear(
+          (base_layer): Linear(in_features=1152, out_features=4096, bias=True)
+          (lora_dropout): ModuleDict(
+            (default): Dropout(p=0.05, inplace=False)
+          )
+          (lora_A): ModuleDict(
+            (default): Linear(in_features=1152, out_features=32, bias=False)
+          )
+          (lora_B): ModuleDict(
+            (default): Linear(in_features=32, out_features=4096, bias=False)
+          )
+          (lora_embedding_A): ParameterDict()
+          (lora_embedding_B): ParameterDict()
+        )
+      )
+    )
+  )
+)
+trainable params: 84,221,952 || all params: 8,598,469,184 || trainable%: 0.9794993759670605
+---> Set tune parameters
+mm projector True
+trainable params: 119,890,944 || all params: 8,598,469,184 || trainable%: 1.3943289373309917
+PeftModelForCausalLM(
+  (base_model): LoraModel(
+    (model): LlavaLlamaModel(
+      (llm): LlamaForCausalLM(
+        (model): LlamaModel(
+          (embed_tokens): Embedding(128259, 4096)
+          (layers): ModuleList(
+            (0-31): 32 x LlamaDecoderLayer(
+              (self_attn): LlamaFlashAttention2(
+                (q_proj): lora.Linear(
+                  (base_layer): Linear4bit(in_features=4096, out_features=4096, bias=False)
+                  (lora_dropout): ModuleDict(
+                    (default): Dropout(p=0.05, inplace=False)
+                  )
+                  (lora_A): ModuleDict(
+                    (default): Linear(in_features=4096, out_features=32, bias=False)
+                  )
+                  (lora_B): ModuleDict(
+                    (default): Linear(in_features=32, out_features=4096, bias=False)
+                  )
+                  (lora_embedding_A): ParameterDict()
+                  (lora_embedding_B): ParameterDict()
+                )
+                (k_proj): lora.Linear(
+                  (base_layer): Linear4bit(in_features=4096, out_features=1024, bias=False)
+                  (lora_dropout): ModuleDict(
+                    (default): Dropout(p=0.05, inplace=False)
+                  )
+                  (lora_A): ModuleDict(
+                    (default): Linear(in_features=4096, out_features=32, bias=False)
+                  )
+                  (lora_B): ModuleDict(
+                    (default): Linear(in_features=32, out_features=1024, bias=False)
+                  )
+                  (lora_embedding_A): ParameterDict()
+                  (lora_embedding_B): ParameterDict()
+                )
+                (v_proj): lora.Linear(
+                  (base_layer): Linear4bit(in_features=4096, out_features=1024, bias=False)
+                  (lora_dropout): ModuleDict(
+                    (default): Dropout(p=0.05, inplace=False)
+                  )
+                  (lora_A): ModuleDict(
+                    (default): Linear(in_features=4096, out_features=32, bias=False)
+                  )
+                  (lora_B): ModuleDict(
+                    (default): Linear(in_features=32, out_features=1024, bias=False)
+                  )
+                  (lora_embedding_A): ParameterDict()
+                  (lora_embedding_B): ParameterDict()
+                )
+                (o_proj): lora.Linear(
+                  (base_layer): Linear4bit(in_features=4096, out_features=4096, bias=False)
+                  (lora_dropout): ModuleDict(
+                    (default): Dropout(p=0.05, inplace=False)
+                  )
+                  (lora_A): ModuleDict(
+                    (default): Linear(in_features=4096, out_features=32, bias=False)
+                  )
+                  (lora_B): ModuleDict(
+                    (default): Linear(in_features=32, out_features=4096, bias=False)
+                  )
+                  (lora_embedding_A): ParameterDict()
+                  (lora_embedding_B): ParameterDict()
+                )
+                (rotary_emb): LlamaRotaryEmbedding()
+              )
+              (mlp): LlamaMLP(
+                (gate_proj): lora.Linear(
+                  (base_layer): Linear4bit(in_features=4096, out_features=14336, bias=False)
+                  (lora_dropout): ModuleDict(
+                    (default): Dropout(p=0.05, inplace=False)
+                  )
+                  (lora_A): ModuleDict(
+                    (default): Linear(in_features=4096, out_features=32, bias=False)
+                  )
+                  (lora_B): ModuleDict(
+                    (default): Linear(in_features=32, out_features=14336, bias=False)
+                  )
+                  (lora_embedding_A): ParameterDict()
+                  (lora_embedding_B): ParameterDict()
+                )
+                (up_proj): lora.Linear(
+                  (base_layer): Linear4bit(in_features=4096, out_features=14336, bias=False)
+                  (lora_dropout): ModuleDict(
+                    (default): Dropout(p=0.05, inplace=False)
+                  )
+                  (lora_A): ModuleDict(
+                    (default): Linear(in_features=4096, out_features=32, bias=False)
+                  )
+                  (lora_B): ModuleDict(
+                    (default): Linear(in_features=32, out_features=14336, bias=False)
+                  )
+                  (lora_embedding_A): ParameterDict()
+                  (lora_embedding_B): ParameterDict()
+                )
+                (down_proj): lora.Linear(
+                  (base_layer): Linear4bit(in_features=14336, out_features=4096, bias=False)
+                  (lora_dropout): ModuleDict(
+                    (default): Dropout(p=0.05, inplace=False)
+                  )
+                  (lora_A): ModuleDict(
+                    (default): Linear(in_features=14336, out_features=32, bias=False)
+                  )
+                  (lora_B): ModuleDict(
+                    (default): Linear(in_features=32, out_features=4096, bias=False)
+                  )
+                  (lora_embedding_A): ParameterDict()
+                  (lora_embedding_B): ParameterDict()
+                )
+                (act_fn): SiLU()
+              )
+              (input_layernorm): LlamaRMSNorm()
+              (post_attention_layernorm): LlamaRMSNorm()
+            )
+          )
+          (norm): LlamaRMSNorm()
+        )
+        (lm_head): Linear(in_features=4096, out_features=128259, bias=False)
+      )
+      (vision_tower): SiglipVisionTower(
+        (vision_tower): SiglipVisionModel(
+          (vision_model): SiglipVisionTransformer(
+            (embeddings): SiglipVisionEmbeddings(
+              (patch_embedding): Conv2d(3, 1152, kernel_size=(14, 14), stride=(14, 14), padding=valid)
+              (position_embedding): Embedding(729, 1152)
+            )
+            (encoder): SiglipEncoder(
+              (layers): ModuleList(
+                (0-26): 27 x SiglipEncoderLayer(
+                  (self_attn): SiglipAttention(
+                    (k_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                    (v_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                    (q_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                    (out_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                  )
+                  (layer_norm1): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+                  (mlp): SiglipMLP(
+                    (activation_fn): PytorchGELUTanh()
+                    (fc1): Linear(in_features=1152, out_features=4304, bias=True)
+                    (fc2): Linear(in_features=4304, out_features=1152, bias=True)
+                  )
+                  (layer_norm2): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+                )
+              )
+            )
+            (post_layernorm): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+            (head): SiglipMultiheadAttentionPoolingHead(
+              (attention): MultiheadAttention(
+                (out_proj): NonDynamicallyQuantizableLinear(in_features=1152, out_features=1152, bias=True)
+              )
+              (layernorm): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+              (mlp): SiglipMLP(
+                (activation_fn): PytorchGELUTanh()
+                (fc1): Linear(in_features=1152, out_features=4304, bias=True)
+                (fc2): Linear(in_features=4304, out_features=1152, bias=True)
+              )
+            )
+          )
+        )
+      )
+      (mm_projector): MultimodalProjector(
+        (layers): Sequential(
+          (0): DownSampleBlock()
+          (1): LayerNorm((4608,), eps=1e-05, elementwise_affine=True)
+          (2): Linear(in_features=4608, out_features=4096, bias=True)
+          (3): GELU(approximate='none')
+          (4): Linear(in_features=4096, out_features=4096, bias=True)
+        )
+      )
+      (region_extractor): RegionExtractor(
+        (mask_pooling): MaskPooling()
+        (feature_refinement_module): Sequential(
+          (0): ConvTranspose2d(1152, 1152, kernel_size=(2, 2), stride=(2, 2))
+          (1): LayerNorm2d()
+          (2): GELU(approximate='none')
+          (3): ConvTranspose2d(1152, 1152, kernel_size=(2, 2), stride=(2, 2))
+          (4): GELU(approximate='none')
+        )
+        (ada_pooling): AdaptiveAvgPool2d(output_size=27)
+        (rgb_projector): lora.Linear(
+          (base_layer): Linear(in_features=1152, out_features=4096, bias=True)
+          (lora_dropout): ModuleDict(
+            (default): Dropout(p=0.05, inplace=False)
+          )
+          (lora_A): ModuleDict(
+            (default): Linear(in_features=1152, out_features=32, bias=False)
+          )
+          (lora_B): ModuleDict(
+            (default): Linear(in_features=32, out_features=4096, bias=False)
+          )
+          (lora_embedding_A): ParameterDict()
+          (lora_embedding_B): ParameterDict()
+        )
+        (depth_projector): lora.Linear(
+          (base_layer): Linear(in_features=1152, out_features=4096, bias=True)
+          (lora_dropout): ModuleDict(
+            (default): Dropout(p=0.05, inplace=False)
+          )
+          (lora_A): ModuleDict(
+            (default): Linear(in_features=1152, out_features=32, bias=False)
+          )
+          (lora_B): ModuleDict(
+            (default): Linear(in_features=32, out_features=4096, bias=False)
+          )
+          (lora_embedding_A): ParameterDict()
+          (lora_embedding_B): ParameterDict()
+        )
+      )
+    )
+  )
+)
+=========== Setting up Tokenizer ... ============
+---> Version: llama_3
+---> Conversation Template:
+Conversation(system='<|start_header_id|>system<|end_header_id|>\n\nYou are a helpful language and vision assistant. You are able to understand the visual content that the user provides, and assist the user with a variety of tasks using natural language.', roles=('<|start_header_id|>user<|end_header_id|>\n\n', '<|start_header_id|>assistant<|end_header_id|>\n\n'), messages=(), offset=0, sep_style=<SeparatorStyle.LLAMA_3: 7>, sep='<|eot_id|>', sep2='<|end_of_text|>', version='llama_v3', skip_next=False)
+=========== Setting up Vision Tower ... ============
+=========== Preparing Dataset, DataCollator ... ============
+[Dataset-INFO]: Loading from ['PSIW_sft_train']
+WARNING:root:Loading Spatial Warehouse Dataset from datasets/PhysicalAI-Spatial-Intelligence-Warehouse/formatted_dataset/train_aicity_srgpt.jsonl
+Spatial Warehouse Enabled
+Load dataset from -> line <- json
+Total SpatialWarehouse Samples  499083 load from:  datasets/PhysicalAI-Spatial-Intelligence-Warehouse/formatted_dataset/train_aicity_srgpt.jsonl
+WARNING:root:Formatting inputs...Skip in lazy mode
+WARNING:root:Pay attention, split eval is not built...
+=========== START TRAINING ============
+Using LlaVaTrainer
+length of dataloader: 15596 499083
+[GPU memory] before trainer 5.592698097229004
+Rank: 0 partition count [1, 1] and sizes[(119873536, False), (17408, False)] 
+wandb: Currently logged in as: minhdv0201 (minhdv0201-ho-chi-minh-city-university-of-technology) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.20.1
+wandb: Run data is saved locally in /dang_van_minh_120/workspace/SpatialRGPT/wandb/run-20250609_050007-l8p01w85
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run SpatialRGPT-VILA1.5-8B-SFT-SpatialWarehouse
+wandb: ⭐️ View project at https://wandb.ai/minhdv0201-ho-chi-minh-city-university-of-technology/AI_City_Challenge_SpatialRGPT_FineTune
+wandb: 🚀 View run at https://wandb.ai/minhdv0201-ho-chi-minh-city-university-of-technology/AI_City_Challenge_SpatialRGPT_FineTune/runs/l8p01w85
+  0%|                                                                                                                                                                        | 0/15596 [00:00<?, ?it/s]/root/miniconda3/envs/srgpt/lib/python3.10/site-packages/torch/utils/checkpoint.py:464: UserWarning: torch.utils.checkpoint: the use_reentrant parameter should be passed explicitly. In version 2.4 we will raise an exception if use_reentrant is not passed. use_reentrant=False is recommended, but if you need to preserve the current default behavior, you can pass use_reentrant=True. Refer to docs for more details on the differences between the two variants.
+  warnings.warn(
+/root/miniconda3/envs/srgpt/lib/python3.10/site-packages/torch/autograd/graph.py:744: UserWarning: c10d::broadcast_: an autograd kernel was not registered to the Autograd key(s) but we are trying to backprop through it. This may lead to silently incorrect behavior. This behavior is deprecated and will be removed in a future version of PyTorch. If your operator is differentiable, please ensure you have registered an autograd kernel to the correct Autograd key (e.g. DispatchKey::Autograd, DispatchKey::CompositeImplicitAutograd). If your operator is not differentiable, or to squash this warning and use the previous behavior, please register torch::CppFunction::makeFallthrough() to DispatchKey::Autograd. (Triggered internally at ../torch/csrc/autograd/autograd_not_implemented_fallback.cpp:63.)
+  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass
+/root/miniconda3/envs/srgpt/lib/python3.10/site-packages/deepspeed/runtime/zero/stage_1_and_2.py:1828: UserWarning: The torch.cuda.*DtypeTensor constructors are no longer recommended. It's best to use methods such as torch.tensor(data, dtype=*, device='cuda') to create tensors. (Triggered internally at ../torch/csrc/tensor/python_tensor.cpp:78.)
+  overflow_gpu = get_accelerator().ByteTensor([overflow])
+Could not estimate the number of tokens of the input, floating-point operations will not be computed
+{'loss': 2.2024, 'learning_rate': 4.273504273504274e-07, 'epoch': 0.0}     
+
+ # 3_sft_script
+
+    print(f"=========== START TRAINING ============")    print(f"=========== START TRAINING ============")
+    (srgpt) root@7416268a9481:/dang_van_minh_120/workspace/SpatialRGPT# bash scripts/srgpt/llama3_8b/3_sft.sh 
+scripts/srgpt/llama3_8b/3_sft.sh: line 3: scontrol: command not found
+scripts/srgpt/llama3_8b/3_sft.sh: line 6: scontrol: command not found
+MASTER_ADDR=127.0.0.1
+JobID:  | Full list: 
+number of nodes:
+per device batch size: 4
+node rank:
+[2025-06-09 04:28:36,054] [INFO] [real_accelerator.py:110:get_accelerator] Setting ds_accelerator to cuda (auto detect)
+Did not find AutoResume SDK!
+=========== Parsing Arguments ... ============
+[2025-06-09 04:28:37,505] [WARNING] [comm.py:152:init_deepspeed_backend] NCCL backend in DeepSpeed not yet implemented
+[2025-06-09 04:28:37,505] [INFO] [comm.py:594:init_distributed] cdb=None
+[2025-06-09 04:28:37,505] [INFO] [comm.py:625:init_distributed] Initializing TorchBackend in DeepSpeed with backend nccl
+---> Model args: 
+ModelArguments(version='llama_3', model_name_or_path='a8cheng/SpatialRGPT-VILA1.5-8B', vision_tower='google/siglip-so400m-patch14-384', mm_projector='mlp_downsample', region_extractor='regiongpt', mm_use_im_start_end=False, mm_use_im_patch_token=False, mm_vision_select_layer=-2, mm_vision_select_feature='cls_patch', vision_resolution=-1, interpolate_mode='linear', drop_path_rate=0.0, mlp_path=None, s2=False, s2_scales='336,672,1008', s2_max_split_size=336, enable_region=True, enable_depth=True)
+---> Data args: 
+DataArguments(data_path=None, lazy_preprocess=False, is_multimodal=False, image_folder=None, image_aspect_ratio='resize', data_mixture='PSIW_sft_train', eval_data_mixture=None, vflan_no_system_prompt=False, downsample_video=False, num_video_frames=8, fps=0.0)
+---> Training args: 
+TrainingArguments(
+_n_gpu=1,
+adafactor=False,
+adam_beta1=0.9,
+adam_beta2=0.999,
+adam_epsilon=1e-08,
+auto_find_batch_size=False,
+bf16=True,
+bf16_full_eval=False,
+bits=16,
+cache_dir=None,
+data_seed=None,
+dataloader_drop_last=False,
+dataloader_num_workers=0,
+dataloader_persistent_workers=False,
+dataloader_pin_memory=True,
+ddp_backend=None,
+ddp_broadcast_buffers=None,
+ddp_bucket_cap_mb=None,
+ddp_find_unused_parameters=None,
+ddp_timeout=1800,
+debug=[],
+deepspeed=./scripts/zero3.json,
+disable_tqdm=False,
+dispatch_batches=None,
+do_eval=False,
+do_predict=False,
+do_train=False,
+double_quant=True,
+dpo=False,
+dpo_beta=0.1,
+eval_accumulation_steps=None,
+eval_delay=0,
+eval_steps=None,
+evaluation_strategy=no,
+fp16=False,
+fp16_backend=auto,
+fp16_full_eval=False,
+fp16_opt_level=O1,
+fsdp=[],
+fsdp_config={'min_num_params': 0, 'xla': False, 'xla_fsdp_grad_ckpt': False},
+fsdp_min_num_params=0,
+fsdp_transformer_layer_cls_to_wrap=None,
+full_determinism=False,
+gradient_accumulation_steps=1,
+gradient_checkpointing=False,
+gradient_checkpointing_kwargs=None,
+greater_is_better=None,
+group_by_length=False,
+group_by_modality_length=False,
+half_precision_backend=auto,
+hub_always_push=False,
+hub_model_id=None,
+hub_private_repo=False,
+hub_strategy=every_save,
+hub_token=<HUB_TOKEN>,
+ignore_data_skip=False,
+include_inputs_for_metrics=False,
+include_num_input_tokens_seen=False,
+include_tokens_per_second=False,
+jit_mode_eval=False,
+label_names=None,
+label_smoothing_factor=0.0,
+learning_rate=5e-05,
+length_column_name=length,
+load_best_model_at_end=False,
+local_rank=0,
+log_level=passive,
+log_level_replica=warning,
+log_on_each_node=True,
+logging_dir=./checkpoints/vila-siglip-llama3-8b-vila-v1.5-srgpt-sft/runs/Jun09_04-28-36_7416268a9481,
+logging_first_step=False,
+logging_nan_inf_filter=True,
+logging_steps=500,
+logging_strategy=steps,
+lora_alpha=16,
+lora_bias=none,
+lora_dropout=0.05,
+lora_enable=False,
+lora_llm=False,
+lora_r=64,
+lora_vt=False,
+lora_weight_path=,
+lr_scheduler_kwargs={},
+lr_scheduler_type=linear,
+max_grad_norm=1.0,
+max_steps=10,
+metric_for_best_model=None,
+mm_projector_lr=None,
+model_dtype=torch.bfloat16,
+model_max_length=512,
+mp_parameters=,
+mpt_attn_impl=triton,
+neftune_noise_alpha=None,
+no_cuda=False,
+num_train_epochs=1.0,
+optim=adamw_torch,
+optim_args=None,
+output_dir=./checkpoints/vila-siglip-llama3-8b-vila-v1.5-srgpt-sft,
+overwrite_output_dir=False,
+past_index=-1,
+per_device_eval_batch_size=8,
+per_device_train_batch_size=8,
+pre_terminate_time=10,
+prediction_loss_only=False,
+push_to_hub=False,
+push_to_hub_model_id=None,
+push_to_hub_organization=None,
+push_to_hub_token=<PUSH_TO_HUB_TOKEN>,
+quant_type=nf4,
+ray_scope=last,
+remove_unused_columns=False,
+report_to=['wandb'],
+resume_from_checkpoint=None,
+run_name=./checkpoints/vila-siglip-llama3-8b-vila-v1.5-srgpt-sft,
+save_on_each_node=False,
+save_only_model=False,
+save_safetensors=True,
+save_steps=500,
+save_strategy=steps,
+save_total_limit=None,
+seed=42,
+seq_parallel_ring_size=-1,
+seq_parallel_size=-1,
+skip_memory_metrics=True,
+split_batches=False,
+tf32=None,
+torch_compile=False,
+torch_compile_backend=None,
+torch_compile_mode=None,
+torchdynamo=None,
+total_time_limit=-1,
+tpu_metrics_debug=False,
+tpu_num_cores=None,
+tune_language_model=True,
+tune_mm_projector=True,
+tune_region_extractor=True,
+tune_vision_tower=True,
+use_cpu=False,
+use_dora=False,
+use_ipex=False,
+use_legacy_prediction_loop=False,
+use_mps_device=False,
+warmup_ratio=0.0,
+warmup_steps=0,
+weight_decay=0.0,
+)
+---> Compute_dtype: torch.bfloat16
+=========== Loading Model ... ============
+---> First time training
+---> default model
+/root/miniconda3/envs/srgpt/lib/python3.10/site-packages/huggingface_hub/file_download.py:943: FutureWarning: `resume_download` is deprecated and will be removed in version 1.0.0. Downloads always resume when possible. If you want to force a new download, use `force_download=True`.
+  warnings.warn(
+---> Initial model ...
+Fetching 20 files: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 20/20 [00:00<00:00, 10272.60it/s]
+You are attempting to use Flash Attention 2.0 with a model not initialized on GPU. Make sure to move the model to GPU after initializing it on CPU with `model.to('cuda')`.
+[2025-06-09 04:28:41,247] [INFO] [partition_parameters.py:453:__exit__] finished initializing model with 8.03B parameters
+Loading checkpoint shards: 100%|█████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 4/4 [00:06<00:00,  1.62s/it]
+Special tokens have been added in the vocabulary, make sure the associated word embeddings are fine-tuned or trained.
+[2025-06-09 04:28:48,368] [WARNING] [partition_parameters.py:836:_post_init_method] param `probe` in SiglipMultiheadAttentionPoolingHead not on GPU so was not broadcasted from rank 0
+[2025-06-09 04:28:48,370] [INFO] [partition_parameters.py:453:__exit__] finished initializing model with 8.46B parameters
+[2025-06-09 04:28:48,907] [INFO] [partition_parameters.py:453:__exit__] finished initializing model with 8.49B parameters
+Resuming region extractor from:  /root/.cache/huggingface/hub/models--a8cheng--SpatialRGPT-VILA1.5-8B/snapshots/64df7902f82b5053f5a53455095805e6de3a1f87/region_extractor
+[2025-06-09 04:28:48,947] [INFO] [partition_parameters.py:453:__exit__] finished initializing model with 8.51B parameters
+LlavaLlamaModel(
+  (llm): LlamaForCausalLM(
+    (model): LlamaModel(
+      (embed_tokens): Embedding(128259, 4096)
+      (layers): ModuleList(
+        (0-31): 32 x LlamaDecoderLayer(
+          (self_attn): LlamaFlashAttention2(
+            (q_proj): Linear(in_features=4096, out_features=4096, bias=False)
+            (k_proj): Linear(in_features=4096, out_features=1024, bias=False)
+            (v_proj): Linear(in_features=4096, out_features=1024, bias=False)
+            (o_proj): Linear(in_features=4096, out_features=4096, bias=False)
+            (rotary_emb): LlamaRotaryEmbedding()
+          )
+          (mlp): LlamaMLP(
+            (gate_proj): Linear(in_features=4096, out_features=14336, bias=False)
+            (up_proj): Linear(in_features=4096, out_features=14336, bias=False)
+            (down_proj): Linear(in_features=14336, out_features=4096, bias=False)
+            (act_fn): SiLU()
+          )
+          (input_layernorm): LlamaRMSNorm()
+          (post_attention_layernorm): LlamaRMSNorm()
+        )
+      )
+      (norm): LlamaRMSNorm()
+    )
+    (lm_head): Linear(in_features=4096, out_features=128259, bias=False)
+  )
+  (vision_tower): SiglipVisionTower(
+    (vision_tower): SiglipVisionModel(
+      (vision_model): SiglipVisionTransformer(
+        (embeddings): SiglipVisionEmbeddings(
+          (patch_embedding): Conv2d(3, 1152, kernel_size=(14, 14), stride=(14, 14), padding=valid)
+          (position_embedding): Embedding(729, 1152)
+        )
+        (encoder): SiglipEncoder(
+          (layers): ModuleList(
+            (0-26): 27 x SiglipEncoderLayer(
+              (self_attn): SiglipAttention(
+                (k_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                (v_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                (q_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                (out_proj): Linear(in_features=1152, out_features=1152, bias=True)
+              )
+              (layer_norm1): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+              (mlp): SiglipMLP(
+                (activation_fn): PytorchGELUTanh()
+                (fc1): Linear(in_features=1152, out_features=4304, bias=True)
+                (fc2): Linear(in_features=4304, out_features=1152, bias=True)
+              )
+              (layer_norm2): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+            )
+          )
+        )
+        (post_layernorm): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+        (head): SiglipMultiheadAttentionPoolingHead(
+          (attention): MultiheadAttention(
+            (out_proj): NonDynamicallyQuantizableLinear(in_features=1152, out_features=1152, bias=True)
+          )
+          (layernorm): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+          (mlp): SiglipMLP(
+            (activation_fn): PytorchGELUTanh()
+            (fc1): Linear(in_features=1152, out_features=4304, bias=True)
+            (fc2): Linear(in_features=4304, out_features=1152, bias=True)
+          )
+        )
+      )
+    )
+  )
+  (mm_projector): MultimodalProjector(
+    (layers): Sequential(
+      (0): DownSampleBlock()
+      (1): LayerNorm((4608,), eps=1e-05, elementwise_affine=True)
+      (2): Linear(in_features=4608, out_features=4096, bias=True)
+      (3): GELU(approximate='none')
+      (4): Linear(in_features=4096, out_features=4096, bias=True)
+    )
+  )
+  (region_extractor): RegionExtractor(
+    (mask_pooling): MaskPooling()
+    (feature_refinement_module): Sequential(
+      (0): ConvTranspose2d(1152, 1152, kernel_size=(2, 2), stride=(2, 2))
+      (1): LayerNorm2d()
+      (2): GELU(approximate='none')
+      (3): ConvTranspose2d(1152, 1152, kernel_size=(2, 2), stride=(2, 2))
+      (4): GELU(approximate='none')
+    )
+    (ada_pooling): AdaptiveAvgPool2d(output_size=27)
+    (rgb_projector): Linear(in_features=1152, out_features=4096, bias=True)
+    (depth_projector): Linear(in_features=1152, out_features=4096, bias=True)
+  )
+)
+WARNING:root:You are setting tunable parameters for the model. Previous args include 'freeze_backbone' and 'tune_mm_mlp_adapter' are deprecated.
+ Notice: default value of tune_xxx is False, which means you would not tune this part.
+---> Set tune parameters
+Tunable parameters:
+language model True
+vision tower True
+mm projector True
+region extractor True
+LlavaLlamaModel(
+  (llm): LlamaForCausalLM(
+    (model): LlamaModel(
+      (embed_tokens): Embedding(128259, 4096)
+      (layers): ModuleList(
+        (0-31): 32 x LlamaDecoderLayer(
+          (self_attn): LlamaFlashAttention2(
+            (q_proj): Linear(in_features=4096, out_features=4096, bias=False)
+            (k_proj): Linear(in_features=4096, out_features=1024, bias=False)
+            (v_proj): Linear(in_features=4096, out_features=1024, bias=False)
+            (o_proj): Linear(in_features=4096, out_features=4096, bias=False)
+            (rotary_emb): LlamaRotaryEmbedding()
+          )
+          (mlp): LlamaMLP(
+            (gate_proj): Linear(in_features=4096, out_features=14336, bias=False)
+            (up_proj): Linear(in_features=4096, out_features=14336, bias=False)
+            (down_proj): Linear(in_features=14336, out_features=4096, bias=False)
+            (act_fn): SiLU()
+          )
+          (input_layernorm): LlamaRMSNorm()
+          (post_attention_layernorm): LlamaRMSNorm()
+        )
+      )
+      (norm): LlamaRMSNorm()
+    )
+    (lm_head): Linear(in_features=4096, out_features=128259, bias=False)
+  )
+  (vision_tower): SiglipVisionTower(
+    (vision_tower): SiglipVisionModel(
+      (vision_model): SiglipVisionTransformer(
+        (embeddings): SiglipVisionEmbeddings(
+          (patch_embedding): Conv2d(3, 1152, kernel_size=(14, 14), stride=(14, 14), padding=valid)
+          (position_embedding): Embedding(729, 1152)
+        )
+        (encoder): SiglipEncoder(
+          (layers): ModuleList(
+            (0-26): 27 x SiglipEncoderLayer(
+              (self_attn): SiglipAttention(
+                (k_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                (v_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                (q_proj): Linear(in_features=1152, out_features=1152, bias=True)
+                (out_proj): Linear(in_features=1152, out_features=1152, bias=True)
+              )
+              (layer_norm1): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+              (mlp): SiglipMLP(
+                (activation_fn): PytorchGELUTanh()
+                (fc1): Linear(in_features=1152, out_features=4304, bias=True)
+                (fc2): Linear(in_features=4304, out_features=1152, bias=True)
+              )
+              (layer_norm2): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+            )
+          )
+        )
+        (post_layernorm): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+        (head): SiglipMultiheadAttentionPoolingHead(
+          (attention): MultiheadAttention(
+            (out_proj): NonDynamicallyQuantizableLinear(in_features=1152, out_features=1152, bias=True)
+          )
+          (layernorm): LayerNorm((1152,), eps=1e-06, elementwise_affine=True)
+          (mlp): SiglipMLP(
+            (activation_fn): PytorchGELUTanh()
+            (fc1): Linear(in_features=1152, out_features=4304, bias=True)
+            (fc2): Linear(in_features=4304, out_features=1152, bias=True)
+          )
+        )
+      )
+    )
+  )
+  (mm_projector): MultimodalProjector(
+    (layers): Sequential(
+      (0): DownSampleBlock()
+      (1): LayerNorm((4608,), eps=1e-05, elementwise_affine=True)
+      (2): Linear(in_features=4608, out_features=4096, bias=True)
+      (3): GELU(approximate='none')
+      (4): Linear(in_features=4096, out_features=4096, bias=True)
+    )
+  )
+  (region_extractor): RegionExtractor(
+    (mask_pooling): MaskPooling()
+    (feature_refinement_module): Sequential(
+      (0): ConvTranspose2d(1152, 1152, kernel_size=(2, 2), stride=(2, 2))
+      (1): LayerNorm2d()
+      (2): GELU(approximate='none')
+      (3): ConvTranspose2d(1152, 1152, kernel_size=(2, 2), stride=(2, 2))
+      (4): GELU(approximate='none')
+    )
+    (ada_pooling): AdaptiveAvgPool2d(output_size=27)
+    (rgb_projector): Linear(in_features=1152, out_features=4096, bias=True)
+    (depth_projector): Linear(in_features=1152, out_features=4096, bias=True)
+  )
+)
+=========== Setting up Tokenizer ... ============
+---> Version: llama_3
+---> Conversation Template:
+Conversation(system='<|start_header_id|>system<|end_header_id|>\n\nYou are a helpful language and vision assistant. You are able to understand the visual content that the user provides, and assist the user with a variety of tasks using natural language.', roles=('<|start_header_id|>user<|end_header_id|>\n\n', '<|start_header_id|>assistant<|end_header_id|>\n\n'), messages=(), offset=0, sep_style=<SeparatorStyle.LLAMA_3: 7>, sep='<|eot_id|>', sep2='<|end_of_text|>', version='llama_v3', skip_next=False)
+=========== Setting up Vision Tower ... ============
+=========== Preparing Dataset, DataCollator ... ============
+[Dataset-INFO]: Loading from ['PSIW_sft_train']
+WARNING:root:Loading Spatial Warehouse Dataset from datasets/PhysicalAI-Spatial-Intelligence-Warehouse/formatted_dataset/train_aicity_srgpt.jsonl
+Spatial Warehouse Enabled
+Load dataset from -> line <- json
+Total SpatialWarehouse Samples  499083 load from:  datasets/PhysicalAI-Spatial-Intelligence-Warehouse/formatted_dataset/train_aicity_srgpt.jsonl
+WARNING:root:Formatting inputs...Skip in lazy mode
+WARNING:root:Pay attention, split eval is not built...
+=========== START TRAINING ============
+Using LlaVaTrainer
+length of dataloader: 62385 499083
+[GPU memory] before trainer 17.942938327789307
+Parameter Offload: Total persistent parameters: 709568 in 355 params
