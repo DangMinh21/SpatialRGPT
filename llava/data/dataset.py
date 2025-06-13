@@ -1834,6 +1834,12 @@ class LazySpatialWarehouseDataset(Dataset):
         self.tokenizer = tokenizer
         self.data_args = data_args
         self.rgb_image_folder = image_folder
+        self.cat_to_id = {
+            "pallet": 0,
+            "buffer": 1,
+            "shelf": 2, 
+            "transporter": 3
+        }
 
     def __len__(self):
         return len(self.list_data_dict)
@@ -1891,6 +1897,13 @@ class LazySpatialWarehouseDataset(Dataset):
         data_dict["masks"] = masks_tensor  # (num_masks, H, W)
         if self.enable_depth:
             data_dict["depth"] = depth_tensor.unsqueeze(0)  # (1, C, H, W)
+            
+        # 6. region ids for region classification
+        if sources["region_label"]:
+            
+            data_dict['region_labels'] = torch.LongTensor(
+                [self.cat_to_id[label] for label in sources["region_labels"]]
+            )
 
         return data_dict
 
@@ -1908,6 +1921,8 @@ class DataCollatorForSupervisedDataset:
         # input_ids, labels = tuple([instance[key] for instance in instances]
         #                           for key in ("input_ids", "labels"))
         input_ids, labels, images, masks, depths = [], [], [], [], []
+        region_labels = []
+        
         for instance in instances:
             if not isinstance(instance["input_ids"], list):
                 input_ids.append(instance["input_ids"])
@@ -1917,6 +1932,13 @@ class DataCollatorForSupervisedDataset:
                 labels.append(instance["labels"])
             else:
                 labels += instance["labels"]
+            
+            if "region_labels" in instance:
+                if not isinstance(instance['region_labels'], list):
+                    region_labels.append(instance['region_labels'])
+                else:
+                    region_labels += instance["region_labels"]
+                
             # Note (kentang-mit@: we do not directly push tensors to
             # images, but list of tensors.
             if instance["image"] is not None:
@@ -1985,6 +2007,9 @@ class DataCollatorForSupervisedDataset:
             labels=labels,
             attention_mask=input_ids.ne(self.tokenizer.pad_token_id),
         )
+        # add for compute region classification
+        if len(region_labels) > 0:
+            batch["region_labels"] = region_labels
 
         new_images = []
         new_depths = []

@@ -35,6 +35,33 @@ class DataArguments:
     # for video training
     num_video_frames: int = 8
     fps: float = 0.0  # 0.0 means we do not use fps at all. Always sample the same number of frames.
+    
+    # add for RegionFeatureExtractor
+    enable_region_enhancer: bool = field(
+        default=True,
+        metadata={"help": "Whether to use region enhancer"}
+    )
+    region_enhancer_cfg: dict = field(
+        default_factory=lambda: {
+            'num_heads': 8,
+            'num_transformer_layers': 6,
+            'num_cross_attn_layers': 1,
+            'dropout': 0.1,
+            'activation': 'gelu'
+        },
+        metadata={"help": "Configuration for region enhancer"}
+    )
+    enable_region_classifier: bool = field(
+        default=True,
+        metadata={"help": "Whether to use region classifier"}
+    )
+    region_classifier_cfg: dict = field(
+        default_factory=lambda: {
+            'num_classes': 80,
+            'dropout': 0.1
+        },
+        metadata={"help": "Configuration for region classifier"}
+    )
 
 
 @dataclass
