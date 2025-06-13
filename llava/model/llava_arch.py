@@ -126,6 +126,14 @@ class LlavaMetaModel(ABC):
         else:
             self.region_classifier = None
             self.region_classifier_loss = None
+
+        if self.region_enhancer is not None:
+            self.region_enhancer.requires_grad_(config.tune_region_enhancer)
+    
+        if self.region_classifier is not None:
+            # This can be one flag for all heads, or individual flags
+            self.region_classifier.requires_grad_(config.tune_region_enhancer)
+            
         # =================
         
         self.post_config()

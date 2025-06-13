@@ -628,33 +628,33 @@ class LLaVATrainer(Trainer):
             return self.model.save_pretrained(output_dir, state_dict=state_dict)
         
     # override the compute_loss for head losses
-    def compute_loss(self, model, inputs, return_outputs=False):
-        # get th standard llm loss
-        llm_loss, outputs =  super().compute_loss(model, inputs, return_outputs)
+    # def compute_loss(self, model, inputs, return_outputs=False):
+    #     # get th standard llm loss
+    #     llm_loss, outputs =  super().compute_loss(model, inputs, return_outputs)
         
-        # get the region_loss
-        region_logits = getattr(self, 'region_logits', None)
-        if region_logits is None:
-            return llm_loss if not return_outputs else (llm_loss, outputs)
+    #     # get the region_loss
+    #     region_logits = getattr(self, 'region_logits', None)
+    #     if region_logits is None:
+    #         return llm_loss if not return_outputs else (llm_loss, outputs)
         
-        region_labels = inputs.get('region_labels')
+    #     region_labels = inputs.get('region_labels')
             
-        region_loss = self.region_classifier_loss(region_logits, region_labels)
+    #     region_loss = self.region_classifier_loss(region_logits, region_labels)
         
-        # Combine losses
-        loss_weights = {
-            'llm': 1,
-            'region_cls': 0.2
-        }
-        total_loss = (loss_weights['llm'] * llm_loss) + (loss_weights["region_cls"]*region_loss)
+    #     # Combine losses
+    #     loss_weights = {
+    #         'llm': 1,
+    #         'region_cls': 0.2
+    #     }
+    #     total_loss = (loss_weights['llm'] * llm_loss) + (loss_weights["region_cls"]*region_loss)
         
-        logger.log({
-            'llm_loss': llm_loss.item(),
-            'region_loss': region_loss.item(),
-            'total_loss': total_loss.item()
-        })
+    #     logger.log({
+    #         'llm_loss': llm_loss.item(),
+    #         'region_loss': region_loss.item(),
+    #         'total_loss': total_loss.item()
+    #     })
         
-        return total_loss if not return_outputs else (total_loss, outputs)
+    #     return total_loss if not return_outputs else (total_loss, outputs)
         
         
             

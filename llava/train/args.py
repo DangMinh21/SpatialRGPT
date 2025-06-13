@@ -57,7 +57,7 @@ class DataArguments:
     )
     region_classifier_cfg: dict = field(
         default_factory=lambda: {
-            'num_classes': 80,
+            'num_classes': 4,
             'dropout': 0.1
         },
         metadata={"help": "Configuration for region classifier"}
@@ -98,6 +98,7 @@ class TrainingArguments(transformers.TrainingArguments):
     tune_language_model: bool = field(default=False)
     tune_mm_projector: bool = field(default=False)
     tune_region_extractor: bool = field(default=False)
+    tune_region_enhancer: bool = field(default=False)
     model_dtype: str = field(default="torch.bfloat16")
     model_max_length: int = field(
         default=512,
