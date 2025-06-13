@@ -75,4 +75,9 @@ log.txt
 
 datasets/mmc4-core-ff
 
+dataset_pipeline
+
+dataset/data_prepare
+
+dataset/mmc4-core-ff
 

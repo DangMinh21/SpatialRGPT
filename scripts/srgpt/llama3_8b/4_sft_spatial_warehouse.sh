@@ -13,6 +13,9 @@ echo $AICITY_DATA_MIXTURE_NAME
 OUTPUT_DIR="./checkpoints/SpatialRGPT-VILA1.5-8B-SFT-SpatialWarehouse"
 echo $OUTPUT_DIR
 
+RESUME_CHECKPOINT_PATH="$OUTPUT_DIR/checkpoint-10989"
+echo "Resuming training from checkpoint: $RESUME_CHECKPOINT_PATH"
+
 PER_DEVICE_TRAIN_BATCH_SIZE=32
 GRADIENT_ACCUMULATION_STEPS=1
 
@@ -111,6 +114,7 @@ torchrun --nnodes=$NNODES --nproc_per_node=$NPROC_PER_NODE --master_port=$MASTER
     --dataloader_num_workers 8 \
     --lazy_preprocess True \
     --vflan_no_system_prompt True \
-    --report_to wandb
+    --report_to wandb \
+    --resume_from_checkpoint $RESUME_CHECKPOINT_PATH
 
 echo "Fine-tuning script for AI City Challenge finished."
