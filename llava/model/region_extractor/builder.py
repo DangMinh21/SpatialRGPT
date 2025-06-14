@@ -51,6 +51,8 @@ def build_region_enhancer(enhancer_cfg, config):
         # Build from scratch
         print("Building region enhancer from scratch.")
         cfg = RegionFeatureExtractorConfig(**enhancer_cfg)
+        print(f"Region enhancer config: {cfg}")
+        
         return RegionFeatureExtractor(cfg).to(eval(config.model_dtype))
 
 # def build_region_classifier(classifier_cfg, config):
@@ -74,6 +76,8 @@ def build_region_classifier(classifier_cfg, config):
     else:
         print("Building region classifier from scratch.")
         cfg = RegionClassifierConfig(**classifier_cfg)
+        print(f"Region classifier config: {cfg}")
+        
         return RegionClassifier(cfg).to(eval(config.model_dtype))
     
     

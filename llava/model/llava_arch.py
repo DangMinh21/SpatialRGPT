@@ -108,31 +108,49 @@ class LlavaMetaModel(ABC):
         # add for enhanced feature extractor
         
         # Khởi tạo RegionFeatureExtractor
+        # if hasattr(config, "enable_region_enhancer") and config.enable_region_enhancer:
+        #     self.region_enhancer = build_region_enhancer(
+        #         config.region_enhancer_cfg,
+        #         config
+        #     )
+        # else:
+        #     self.region_enhancer = None
+            
+        # # Khởi tạo RegionClassifier
+        # if hasattr(config, "enable_region_classifier") and config.enable_region_classifier:
+        #     self.region_classifier = build_region_classifier(
+        #         config.region_classifier_cfg,
+        #         config
+        #     )
+        #     self.region_classifier_loss = RegionClassifierLoss()
+        # else:
+        #     self.region_classifier = None
+        #     self.region_classifier_loss = None
+
+        # if self.region_enhancer is not None:
+        #     self.region_enhancer.requires_grad_(config.tune_region_enhancer)
+    
+        # if self.region_classifier is not None:
+        #     # This can be one flag for all heads, or individual flags
+        #     self.region_classifier.requires_grad_(config.tune_region_classifier)
+
+        # 1. Build Region Enhancer
         if hasattr(config, "enable_region_enhancer") and config.enable_region_enhancer:
-            self.region_enhancer = build_region_enhancer(
-                config.region_enhancer_cfg,
-                config
-            )
+            self.region_enhancer = build_region_enhancer(config.region_enhancer_cfg, config)
+            # if hasattr(config, "tune_region_enhancer"):
+            #     self.region_enhancer.requires_grad_(config.tune_region_enhancer)
         else:
             self.region_enhancer = None
-            
-        # Khởi tạo RegionClassifier
+    
+        # 2. Build Region Classifier Head & Loss
         if hasattr(config, "enable_region_classifier") and config.enable_region_classifier:
-            self.region_classifier = build_region_classifier(
-                config.region_classifier_cfg,
-                config
-            )
+            self.region_classifier = build_region_classifier(config.region_classifier_cfg, config)
             self.region_classifier_loss = RegionClassifierLoss()
+            # if hasattr(config, "tune_region_classifier"):
+            #     self.region_classifier.requires_grad_(config.tune_region_classifier)
         else:
             self.region_classifier = None
             self.region_classifier_loss = None
-
-        if self.region_enhancer is not None:
-            self.region_enhancer.requires_grad_(config.tune_region_enhancer)
-    
-        if self.region_classifier is not None:
-            # This can be one flag for all heads, or individual flags
-            self.region_classifier.requires_grad_(config.tune_region_classifier)
             
         # =================
         
@@ -345,7 +363,7 @@ class LlavaMetaModel(ABC):
         if type(region_enhancer) is list:
             region_enhancer = region_enhancer[0]
         return region_enhancer
-    def get_region_classifer(self):
+    def get_region_classifier(self):
         region_classifier = getattr(self, "region_classifier", None)
         if type(region_classifier) is list:
             region_classifier = region_classifier[0]
