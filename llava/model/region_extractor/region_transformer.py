@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from typing import Optional, Tuple, List
+from transformers import PreTrainedModel, PretrainedConfig
 
 class CrossAttention(nn.Module):
     def __init__(self, dim: int, num_heads: int = 8, dropout: float = 0.1):
@@ -127,37 +128,49 @@ class RegionTransformer(nn.Module):
             
         return rgb_features, depth_features
 
-class RegionFeatureExtractor(nn.Module):
-    def __init__(
-        self,
-        dim: int,
-        num_heads: int = 8,
-        num_transformer_layers: int = 6,
-        num_cross_attn_layers: int = 1,
-        dropout: float = 0.1,
-        activation: str = 'gelu'
-    ):
-        super().__init__()
+
+
+class RegionFeatureExtractorConfig(PretrainedConfig):
+    model_type = "region_feature_extractor"
+    # You can add default config values here if needed
+    def __init__(self, dim=1152, num_heads=8, num_transformer_layers=6, num_cross_attn_layers=1, dropout= 0.1, activation= 'gelu', **kwargs):
+        super().__init__(**kwargs)
         self.dim = dim
+        self.num_heads = num_heads
+        self.num_transformer_layers = num_transformer_layers
+        self.num_cross_attn_layers = num_cross_attn_layers
+        self.dropout = dropout
+        self.activation = activation
+
+class RegionFeatureExtractor(PreTrainedModel):
+    def __init__(self, config: RegionFeatureExtractorConfig):
+        self,
+        self.dim = config.dim,
+        self.num_heads = config.num_heads,
+        self.num_transformer_layers = config.num_transformer_layers,
+        self.num_cross_attn_layers = config.num_cross_attn_layers,
+        self.dropout = config.dropout,
+        self.activation = config.activation
+        super().__init__()
         
         # Region transformer for processing RGB and depth features
         self.region_transformer = RegionTransformer(
-            dim=dim,
-            num_heads=num_heads,
-            num_layers=num_transformer_layers,
-            dropout=dropout,
-            activation=activation
+            dim=self.dim,
+            num_heads=self.num_heads,
+            num_layers=self.num_transformer_layers,
+            dropout=self.dropout,
+            activation=self.activation
         )
         
         # Cross attention for attending to image features
         self.cross_attention = CrossAttention(
-            dim=dim,
-            num_heads=num_heads,
-            dropout=dropout
+            dim=self.dim,
+            num_heads=self.num_heads,
+            dropout=self.dropout
         )
         
         # Final layer normalization
-        self.norm = nn.LayerNorm(dim)
+        self.norm = nn.LayerNorm(self.dim)
         
     def forward(
         self,

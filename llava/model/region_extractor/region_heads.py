@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from typing import List, Union, Optional, Tuple
 from torch.nn.utils.rnn import pad_sequence
+from transformers import PreTrainedModel, PretrainedConfig
 
 class RegionClassifierLoss(nn.Module):
     def __init__(self, reduction: str = 'mean'):
@@ -60,14 +61,20 @@ class RegionClassifierLoss(nn.Module):
         # Compute loss
         return self.criterion(all_logits, all_targets)
 
-class RegionClassifier(nn.Module):
-    def __init__(
-        self,
-        infeatures: int,
-        nclasses: int,
-        hidden_dims: List[int] = [512, 256],
-        dropout: float = 0.1
-    ):
+
+class RegionClassifierConfig(PretrainedConfig):
+    model_type = "region_classifier"
+    def __init__(self, infeatures=1152, nclasses=4, hidden_dims=[512, 256], **kwargs):
+        super().__init__(**kwargs)
+        self.infeatures = infeatures
+        self.nclasses = nclasses
+        self.hidden_dims = hidden_dims
+        self.dropout = 0.1
+
+class RegionClassifier(PreTrainedModel):
+    config_class = RegionClassifierConfig
+    
+    def __init__(self, config: RegionClassifierConfig):
         """
         Region classifier for classifying regions into different types.
         
@@ -78,24 +85,26 @@ class RegionClassifier(nn.Module):
             dropout: Dropout rate
         """
         super().__init__()
-        self.infeatures = infeatures
-        self.nclasses = nclasses
+        self.infeatures = config.infeatures
+        self.nclasses = config.nclasses
+        self.hidden_dims = config.hidden_dims
+        self.dropout = config.dropout
         
         # Build MLP layers
         layers = []
-        prev_dim = infeatures
+        prev_dim = self.infeatures
         
-        for hidden_dim in hidden_dims:
+        for hidden_dim in self.hidden_dims:
             layers.extend([
                 nn.Linear(prev_dim, hidden_dim),
                 nn.LayerNorm(hidden_dim),
                 nn.ReLU(),
-                nn.Dropout(dropout)
+                nn.Dropout(self.dropout)
             ])
             prev_dim = hidden_dim
             
         # Output layer
-        layers.append(nn.Linear(prev_dim, nclasses))
+        layers.append(nn.Linear(prev_dim, self.nclasses))
         
         self.mlp = nn.Sequential(*layers)
         

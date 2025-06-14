@@ -115,7 +115,6 @@ class RegionExtractor(PreTrainedModel):
     def __init__(self, region_extractor_cfg: RegionExtractorConfig, config: PretrainedConfig):
         super().__init__(region_extractor_cfg)
         region_extractor_type = region_extractor_cfg.region_extractor_type
-        self.config.ennable_region_enhancer = config.enable_region_enhancer
 
         if region_extractor_type == "regiongpt":
             self.mask_pooling = MaskPooling()

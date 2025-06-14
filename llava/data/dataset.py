@@ -1900,10 +1900,8 @@ class LazySpatialWarehouseDataset(Dataset):
             
         # 6. region ids for region classification
         if sources["region_label"]:
-            
-            data_dict['region_labels'] = torch.LongTensor(
-                [self.cat_to_id[label] for label in sources["region_labels"]]
-            )
+            label_ids = [self.cat_to_id[label] for label in sources["region_labels"]]
+            data_dict['region_labels'] = torch.LongTensor(label_ids)
 
         return data_dict
 
@@ -1934,10 +1932,7 @@ class DataCollatorForSupervisedDataset:
                 labels += instance["labels"]
             
             if "region_labels" in instance:
-                if not isinstance(instance['region_labels'], list):
-                    region_labels.append(instance['region_labels'])
-                else:
-                    region_labels += instance["region_labels"]
+                region_labels.append(instance['region_labels'])
                 
             # Note (kentang-mit@: we do not directly push tensors to
             # images, but list of tensors.
@@ -2009,7 +2004,7 @@ class DataCollatorForSupervisedDataset:
         )
         # add for compute region classification
         if len(region_labels) > 0:
-            batch["region_labels"] = region_labels
+            batch['region_labels'] = torch.cat(region_labels, dim=0)
 
         new_images = []
         new_depths = []

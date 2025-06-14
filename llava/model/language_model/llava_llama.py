@@ -218,14 +218,15 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
                 return_dict=return_dict,
             )
             # Compute region loss
-            if self.region_classifier is not None and hasattr(self, "region_logits"):
-                total_loss = outputs.loss
+            if self.training and self.region_classifier_loss is not None and hasattr(self, "region_logits"):
                 
                 # region classification loss
-                region_loss = self.region_classifier_loss(self.region_logits, region_labels)
-                total_loss = 1 * total_loss + 0.2 * region_loss
+                region_logits = self.region_logits
+                region_loss = self.region_classifier_loss(region_logits, region_labels)
+                outputs.loss += 0.5 * region_loss
                 
-            outputs.loss = total_loss
+                # Clean up to free memory for the next iteration
+                del self.classifier_logits
 
         if dpo_forward:
             return outputs.logits, new_labels
