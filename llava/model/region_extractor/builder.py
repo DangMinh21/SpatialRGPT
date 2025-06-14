@@ -7,8 +7,8 @@ import torch.nn as nn
 from transformers import PretrainedConfig, PreTrainedModel
 
 from .base_extractor import RegionExtractor, RegionExtractorConfig
-from .region_transformer import RegionFeatureExtractor
-from.region_heads import RegionClassifier
+from .region_transformer import RegionFeatureExtractor, RegionFeatureExtractorConfig
+from.region_heads import RegionClassifier, RegionClassifierConfig
 
 
 def build_region_extractor(model_type_or_path: str, config: PretrainedConfig) -> PreTrainedModel:
@@ -39,6 +39,19 @@ def build_region_extractor(model_type_or_path: str, config: PretrainedConfig) ->
 #         dropout=enhancer_cfg.get('dropout', 0.1),
 #         activation=enhancer_cfg.get('activation', 'gelu')
 #     )
+def build_region_enhancer(enhancer_cfg, config):
+    # This pattern checks if we are resuming from a checkpoint
+    if config.resume_path and os.path.exists(os.path.join(config.resume_path, "region_enhancer")):
+        print("Resuming region enhancer from:", os.path.join(config.resume_path, "region_enhancer"))
+        return RegionFeatureExtractor.from_pretrained(
+            os.path.join(config.resume_path, "region_enhancer"),
+            torch_dtype=eval(config.model_dtype)
+        )
+    else:
+        # Build from scratch
+        print("Building region enhancer from scratch.")
+        cfg = RegionFeatureExtractorConfig(**enhancer_cfg)
+        return RegionFeatureExtractor(cfg).to(eval(config.model_dtype))
 
 # def build_region_classifier(classifier_cfg, config):
 #     """
@@ -51,5 +64,16 @@ def build_region_extractor(model_type_or_path: str, config: PretrainedConfig) ->
 #         num_classes=classifier_cfg.get('num_classes', 4),
 #         dropout=classifier_cfg.get('dropout', 0.1)
 #     )
+def build_region_classifier(classifier_cfg, config):
+    if config.resume_path and os.path.exists(os.path.join(config.resume_path, "region_classifier")):
+        print("Resuming region classifier from:", os.path.join(config.resume_path, "region_classifier"))
+        return RegionClassifier.from_pretrained(
+            os.path.join(config.resume_path, "region_classifier"),
+            torch_dtype=eval(config.model_dtype)
+        )
+    else:
+        print("Building region classifier from scratch.")
+        cfg = RegionClassifierConfig(**classifier_cfg)
+        return RegionClassifier(cfg).to(eval(config.model_dtype))
     
     

@@ -132,7 +132,7 @@ class LlavaMetaModel(ABC):
     
         if self.region_classifier is not None:
             # This can be one flag for all heads, or individual flags
-            self.region_classifier.requires_grad_(config.tune_region_enhancer)
+            self.region_classifier.requires_grad_(config.tune_region_classifier)
             
         # =================
         
@@ -199,6 +199,8 @@ class LlavaMetaModel(ABC):
         vlm.vision_tower = build_vision_tower(vision_tower_cfg, config)
         vlm.mm_projector = build_mm_projector(mm_projector_cfg, config)
         vlm.region_extractor = build_region_extractor(region_extractor_cfg, config)
+        vlm.region_enhancer = build_region_enhancer(enhancer_cfg, config)
+        vlm.region_classifier = build_region_classifier(classifier_cfg, config)
 
         self.post_config()
         self.is_loaded = True
@@ -269,17 +271,31 @@ class LlavaMetaModel(ABC):
             )
             self.config.region_extractor_cfg = self.region_extractor.config
             
-        # if self.get_region_enhancer():
-        #     print(f"saving region_enhancer to {osp.join(output_dir, 'region_enhancer')}")
-        #     self.region_enhancer.config._name_or_path = osp.join(output_dir, "region_enhancer")
-        #     region_enhancer_state_dict = OrderedDict(
-        #         {k.split("region_enhancer.")[-1]: v for k, v in state_dict.items() if "region_enhancer" in k}
-        #     )
-        #     self.region_enhancer.save_pretrained(
-        #         os.path.join(output_dir, "region_enhancer"),
-        #         state_dict=region_enhancer_state_dict,
-        #     )
-        #     self.config.region_enhancer_cfg = self.region_enhancer.config
+        if self.get_region_enhancer():
+            print(f"saving region_enhancer to {osp.join(output_dir, 'region_enhancer')}")
+            # Filter the state dict for keys belonging to region_enhancer
+            region_enhancer_state_dict = OrderedDict(
+                {k.split("region_enhancer.")[-1]: v for k, v in state_dict.items() if "region_enhancer" in k}
+            )
+            # Save the enhancer as a separate pretrained module
+            self.region_enhancer.save_pretrained(
+                os.path.join(output_dir, "region_enhancer"),
+                state_dict=region_enhancer_state_dict,
+            )
+            # Store its configuration path in the main model config
+            self.config.region_enhancer_cfg = self.region_enhancer.config.to_dict()
+
+        if self.get_region_classifier():
+            print(f"saving region_classifier to {osp.join(output_dir, 'region_classifier')}")
+            region_classifier_state_dict = OrderedDict(
+                {k.split("region_classifier.")[-1]: v for k, v in state_dict.items() if "region_classifier" in k}
+            )
+            self.region_classifier.save_pretrained(
+                os.path.join(output_dir, "region_classifier"),
+                state_dict=region_classifier_state_dict,
+            )
+            self.config.region_classifier_cfg = self.region_classifier.config.to_dict()
+
 
         ## update and save top-level config
         if hasattr(self.config, "enable_region") and self.config.enable_region:
@@ -453,19 +469,19 @@ class LlavaMetaForCausalLM(ABC):
             elif depths.ndim == 5:  # batch_size x seq_len x image_channels
                 depths = depths.flatten(0, 1)
                 
-        def split_enhanced_features(enhanced_features):
-            """
-            Tách enhanced_features thành mask_embeds và depth_embeds
-            """
-            if enhanced_features is None:
-                return None, None
+        # def split_enhanced_features(enhanced_features):
+        #     """
+        #     Tách enhanced_features thành mask_embeds và depth_embeds
+        #     """
+        #     if enhanced_features is None:
+        #         return None, None
                 
-            # Logic tách features dựa trên cấu trúc output của RegionFeatureExtractor
-            N = enhanced_features.shape[1] // 2
-            mask_embeds = enhanced_features[:, :N]
-            depth_embeds = enhanced_features[:, N:]
+        #     # Logic tách features dựa trên cấu trúc output của RegionFeatureExtractor
+        #     N = enhanced_features.shape[1] // 2
+        #     mask_embeds = enhanced_features[:, :N]
+        #     depth_embeds = enhanced_features[:, N:]
             
-            return mask_embeds, depth_embeds
+        #     return mask_embeds, depth_embeds
 
         tower_features = self.get_vision_tower()(images)
         tower_features = tower_features.to(self.device)
@@ -481,24 +497,53 @@ class LlavaMetaForCausalLM(ABC):
             lres_tower_features = tower_features
             
             # add process through RegionFeatureExtractor
-            if self.region_enhancer is not None:
-                enhanced_features = self.region_enhancer(
-                    rgb_features = mask_embeds,
-                    depth_features = depth_embeds if depth_embeds is not None else None,
-                    image_features = lres_tower_features
-                    )
-                mask_embeds, depth_embeds = split_enhanced_features(enhanced_features)
+            if self.region_enhancer is not None and mask_embeds is not None:
+
+                enhanced_mask_embeds_list = []
+                enhanced_depth_embeds_list = []
+                region_logits_list = []
+
+                # Iterate through each sample in the batch
+                for i in range(len(mask_embeds)):
+                    cur_mask_embeds = mask_embeds[i]  # Shape: [Nr, F_vision]
+                    cur_depth_embeds = depth_embeds[i] if depth_embeds is not None else None
+                    cur_lres_features = lres_tower_features[i] # Shape: [N_global, F_vision]
+
+                    # get enhanced feature
+                    enhanced_features = self.region_enhancer(
+                        rgb_features=cur_mask_embeds,
+                        depth_features=cur_depth_embeds,
+                        image_features=cur_lres_features
+                    ) # Output shape: [2*Nr, F_vision]
                 
-                # rgb and depth projector wiht enhance
-                mask_embeds = self.get_region_extractor().rgb_projector(mask_embeds)
-                depth_embeds = self.get_region_extractor().depth_projector(depth_embeds)
+                    # Split features back
+                    Nr = cur_mask_embeds.shape[0]
+                    enhanced_rgb = enhanced_features[:Nr]
+                    enhanced_depth = enhanced_features[Nr:]
+
+                    # Path for Branch 1 (to LLM): Project the enhanced features
+                    enhanced_mask_embeds_list.append(self.get_region_extractor().rgb_projector(enhanced_rgb))
+                    enhanced_depth_embeds_list.append(self.get_region_extractor().depth_projector(enhanced_depth))
+
+                    # get region logits
+                    if self.region_classifier is not None:
+                        region_logits = self.region_classifier(enhanced_features)
+                        region_logits_list.append(region_logits)
+                
+                
+                # Overwrite original variables with the new, enhanced ones for the LLM path
+                mask_embeds = enhanced_mask_embeds_list
+                depth_embeds = enhanced_depth_embeds_list
+        
+                if len(classifier_logits_list) > 0:
+                    self.classifier_logits = torch.cat(classifier_logits_list, dim=0)
+                
             else:
                 # rgb and depth projector not enhance
                 mask_embeds = self.get_region_extractor().rgb_projector(mask_embeds)
                 depth_embeds = self.get_region_extractor().depth_projector(depth_embeds)
                 
-            if self.region_classifier is not None:
-                self.region_logits = self.region_classifier(enhanced_features)
+            
 
         image_features = self.get_mm_projector()(lres_tower_features).to(self.device)
         

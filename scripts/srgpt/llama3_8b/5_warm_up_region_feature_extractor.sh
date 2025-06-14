@@ -12,6 +12,7 @@ echo "JobID: $SLURM_JOB_ID | Full list: $worker_list"
 # OUTPUT of stage 2 script
 # STAGE2_PATH="./checkpoints/vila-siglip-llama3-8b-vila-v1.5-srgpt-pretrain"
 STAGE4_PATH="DangMinh21/SpatialRGPT-VILA1.5-8B-SFT-SpatialWarehouse-merged" 
+OUTPUT_DIR="./checkpoints/srgpt-enhancer-warmup"
 
 
 # n_node=$SLURM_JOB_NUM_NODES
@@ -38,12 +39,13 @@ torchrun --nnodes=1 --nproc_per_node=1 --master_port=25001 \
     --tune_language_model False \
     --tune_region_extractor False \
     --tune_region_enhancer True \
+    --tune_region_classifier True \
     --mm_vision_select_layer -2 \
     --mm_use_im_start_end False \
     --mm_use_im_patch_token False \
     --image_aspect_ratio resize \
     --bf16 True \
-    --output_dir ./checkpoints/vila-siglip-llama3-8b-vila-v1.5-srgpt-allign-region-feature-extractor \
+    --output_dir $OUTPUT_DIR \
     --num_train_epochs 1 \
     --max_steps 10
     --per_device_train_batch_size 2 \
