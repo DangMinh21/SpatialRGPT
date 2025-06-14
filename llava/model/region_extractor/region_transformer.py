@@ -144,14 +144,15 @@ class RegionFeatureExtractorConfig(PretrainedConfig):
 
 class RegionFeatureExtractor(PreTrainedModel):
     def __init__(self, config: RegionFeatureExtractorConfig):
-        self,
-        self.dim = config.dim,
-        self.num_heads = config.num_heads,
-        self.num_transformer_layers = config.num_transformer_layers,
-        self.num_cross_attn_layers = config.num_cross_attn_layers,
-        self.dropout = config.dropout,
+        print(f"Init RegionFeatureExtractor: {config}")
+        super().__init__(config)
+        self.dim = config.dim
+        self.num_heads = config.num_heads
+        self.num_transformer_layers = config.num_transformer_layers
+        self.num_cross_attn_layers = config.num_cross_attn_layers
+        self.dropout = config.dropout
         self.activation = config.activation
-        super().__init__()
+        
         
         # Region transformer for processing RGB and depth features
         self.region_transformer = RegionTransformer(

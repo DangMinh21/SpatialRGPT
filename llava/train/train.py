@@ -491,14 +491,30 @@ def train():
 
     ## extra configurations
     prepare_config_for_training(config, model_args, training_args, data_args)
-    print(f"---> Initial model ...")
-    model = model_cls(
-        config=config,
-        attn_implementation="flash_attention_2",
-        model_max_length=training_args.model_max_length,
-        cache_dir=training_args.cache_dir,
-        **bnb_model_from_pretrained_args,
-    )
+
+    # add more config for region enhencer
+    if hasattr(data_args, "enable_region_enhancer"):
+        config.enable_region_enhancer = data_args.enable_region_enhancer
+        config.region_enhancer_cfg = data_args.region_enhancer_cfg
+    if hasattr(data_args, "enable_region_classifier"):
+        config.enable_region_classifier = data_args.enable_region_classifier
+        config.region_classifier_cfg = data_args.region_classifier_cfg
+    
+    # Also inject the new tune flags so the model knows which parts to freeze/unfreeze
+    if hasattr(training_args, "tune_region_enhancer"):
+        config.tune_region_enhancer = training_args.tune_region_enhancer
+    if hasattr(training_args, "tune_region_classifier"):
+        config.tune_region_classifier = training_args.tune_region_classifier
+        
+        # -----------------------------------
+        print(f"---> Initial model ...")
+        model = model_cls(
+            config=config,
+            attn_implementation="flash_attention_2",
+            model_max_length=training_args.model_max_length,
+            cache_dir=training_args.cache_dir,
+            **bnb_model_from_pretrained_args,
+        )
     # ================= Model configuration for training: lora, quantization, ... ==================
 
     if not resume_path or training_args.lora_enable:
@@ -640,6 +656,12 @@ def train():
         if model.get_region_extractor():
             model.get_region_extractor().requires_grad_(training_args.tune_region_extractor)
             mprint(f"region extractor {training_args.tune_region_extractor}")
+
+        if model.get_region_classifier():
+            model.get_region_enhancer().requires_grad_(training_args.tune_region_enhancer)
+            model.get_region_classifier().requires_grad_(training_args.tune_region_classifier)
+            mprint(f"Region enhancer {training_args.tune_region_enhancer}")
+            mprint(f"Region classifier {training_args.tune_region_classifier}")
 
         if not any(
             [

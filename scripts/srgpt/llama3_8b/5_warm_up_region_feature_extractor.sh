@@ -11,8 +11,8 @@ echo "JobID: $SLURM_JOB_ID | Full list: $worker_list"
 
 # OUTPUT of stage 2 script
 # STAGE2_PATH="./checkpoints/vila-siglip-llama3-8b-vila-v1.5-srgpt-pretrain"
-STAGE4_PATH="DangMinh21/SpatialRGPT-VILA1.5-8B-SFT-SpatialWarehouse-merged" 
-OUTPUT_DIR="./checkpoints/srgpt-enhancer-warmup"
+STAGE4_PATH="checkpoints/SpatialRGPT-VILA1.5-8B-SFT-SpatialWarehouse-merged" 
+OUTPUT_DIR="checkpoints/srgpt-enhancer-warmup"
 
 
 # n_node=$SLURM_JOB_NUM_NODES
@@ -47,7 +47,7 @@ torchrun --nnodes=1 --nproc_per_node=1 --master_port=25001 \
     --bf16 True \
     --output_dir $OUTPUT_DIR \
     --num_train_epochs 1 \
-    --max_steps 10
+    --max_steps 10 \
     --per_device_train_batch_size 2 \
     --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 2 \

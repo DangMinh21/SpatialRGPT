@@ -84,7 +84,7 @@ class RegionClassifier(PreTrainedModel):
             hidden_dims: List of hidden layer dimensions
             dropout: Dropout rate
         """
-        super().__init__()
+        super().__init__(config)
         self.infeatures = config.infeatures
         self.nclasses = config.nclasses
         self.hidden_dims = config.hidden_dims

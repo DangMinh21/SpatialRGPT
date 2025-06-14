@@ -58,7 +58,7 @@ class LlavaLlamaConfig(LlavaConfig):
         # Thêm cấu hình cho region classifier
         enable_region_classifier: bool = True,
         region_classifier_cfg: dict = {
-            'num_classes': 80,  # Số lượng classes cần phân loại
+            'num_classes': 4,  # Số lượng classes cần phân loại
             'dropout': 0.1
         },
         **kwargs
