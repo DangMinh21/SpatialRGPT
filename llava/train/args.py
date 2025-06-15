@@ -98,8 +98,11 @@ class TrainingArguments(transformers.TrainingArguments):
     tune_language_model: bool = field(default=False)
     tune_mm_projector: bool = field(default=False)
     tune_region_extractor: bool = field(default=False)
+
+    # Region Enhancer
     tune_region_enhancer: bool = field(default=False)
     tune_region_classifier: bool = field(default=False)
+    #----------------
     model_dtype: str = field(default="torch.bfloat16")
     model_max_length: int = field(
         default=512,

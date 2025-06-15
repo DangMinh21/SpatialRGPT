@@ -155,8 +155,9 @@ class RegionExtractor(PreTrainedModel):
                 if mask_embed is None:
                     _mask_embeds.append(None)
                 else:
-                    _mask_embeds.append(connector(mask_embed))
-                        
+                    _mask_embeds.append(
+                        connector(mask_embed)
+                    )
 
         elif self.config.region_extractor_type in ["duplicate", "duplicate_deconv"]:
             raise NotImplementedError(f"{self.config.region_extractor_type} not implemented")
@@ -165,14 +166,15 @@ class RegionExtractor(PreTrainedModel):
 
         return mask_embeds
 
-    def forward(self, image_features, depth_features, masks, *args, **kwargs):
+    def forward(self, 
+                image_features, # H
+                depth_features,
+                masks,
+                *args, **kwargs):
+        
         mask_embeds = self.extract_region_features(image_features, masks, self.rgb_projector)
         if depth_features is not None:
             depth_embeds = self.extract_region_features(depth_features, masks, self.depth_projector)
         else:
             depth_embeds = None
         return mask_embeds, depth_embeds
-
-
-AutoConfig.register("region_extractor", RegionExtractorConfig)
-AutoModel.register(RegionExtractorConfig, RegionExtractor)

@@ -478,17 +478,17 @@ def train():
             model_cls = LlavaMixtralForCausalLM
         elif "gemma" in model_args.model_name_or_path.lower():
             print(f"---> gemma model")
-            config = LlavaGemmaConfig.from_pretrained(model_args.model_name_or_path)
+            config = LlavaGemmaConfig.from_pretrained(model_args.model_name_or_path) 
             config._attn_implementation = "flash_attention_2"
             model_cls = LlavaGemmaForCausalLM
         else:
             ## llm and default multimodal model
             print(f"---> default model")
-            model_cls = LlavaLlamaModel
-            config = LlavaLlamaConfig.from_pretrained(model_args.model_name_or_path, resume=resume_from_checkpoint)
+            model_cls = LlavaLlamaModel                                                                              # <= Init model
+            config = LlavaLlamaConfig.from_pretrained(model_args.model_name_or_path, resume=resume_from_checkpoint)  # <= Init config
         if getattr(config, "resume_path", None) is not None:
             config.resume_path = model_args.model_name_or_path
-
+    
     ## extra configurations
     prepare_config_for_training(config, model_args, training_args, data_args)
 
@@ -515,6 +515,7 @@ def train():
             cache_dir=training_args.cache_dir,
             **bnb_model_from_pretrained_args,
         )
+        
     # ================= Model configuration for training: lora, quantization, ... ==================
 
     if not resume_path or training_args.lora_enable:
@@ -656,7 +657,8 @@ def train():
         if model.get_region_extractor():
             model.get_region_extractor().requires_grad_(training_args.tune_region_extractor)
             mprint(f"region extractor {training_args.tune_region_extractor}")
-
+            
+        # Set tune Region Enhancer & Loss Head
         if model.get_region_classifier():
             model.get_region_enhancer().requires_grad_(training_args.tune_region_enhancer)
             model.get_region_classifier().requires_grad_(training_args.tune_region_classifier)
@@ -672,8 +674,8 @@ def train():
             ]
         ):
             logging.warning("You are not tuning any part of the model. Please check if this is intended.")
-    mprint(model)
-
+    # mprint(model)
+    
     # ================= Tokenizer ==================
     print(f"=========== Setting up Tokenizer ... ============")
     # @yunhao: tokenizer instantiation is moved into build_llm
@@ -750,7 +752,11 @@ def train():
                 if hasattr(module, "weight"):
                     if training_args.bf16 and module.weight.dtype == torch.float32:
                         module = module.to(torch.bfloat16)
-                        
+
+    print(f"---> Model args before training: \n{model_args}")
+    print(f"---> Data args before training: \n{data_args}")
+    print(f"---> Training args befor training: \n{training_args}")
+              
     # ================= Prepare Dataset ==================
     print(f"=========== Preparing Dataset, DataCollator ... ============")
     
@@ -759,7 +765,8 @@ def train():
         data_args=data_args,
         training_args=training_args,
     )
-
+    # import sys
+    # sys.exit() 
     # ================= Start Training ==================
     print(f"=========== START TRAINING ============")
 
@@ -767,7 +774,7 @@ def train():
     callbacks = [AutoResumeCallback()]
 
     if training_args.dpo:
-        print(f"---> Using DPO")
+        print(f"---> Using DPOTrainer")
         ref_model = model_cls(
             config=config,
             attn_implementation="flash_attention_2",
@@ -800,7 +807,7 @@ def train():
             data_collator=data_collator,
         )
     else:
-        print(f"Using LlaVaTrainer")
+        print(f"---> Using LlaVaTrainer")
         trainer = LLaVATrainer(model=model, tokenizer=tokenizer, args=training_args, callbacks=callbacks, **data_module)
     print(
         "length of dataloader:",

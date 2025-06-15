@@ -19,7 +19,7 @@
 import os
 import random
 from collections import OrderedDict
-from typing import List, Optional
+from typing import List, Optional, Dict, Union, Any
 
 import torch
 import torch.distributed as dist
@@ -626,6 +626,52 @@ class LLaVATrainer(Trainer):
 
         if self.args.should_save:
             return self.model.save_pretrained(output_dir, state_dict=state_dict)
+
+    # In class LLaVATrainer(Trainer)
+
+    def training_step(self, model: nn.Module, inputs: Dict[str, Union[torch.Tensor, Any]]) -> torch.Tensor:
+        """
+        Override the standard training step to explicitly log custom losses.
+        """
+        # Use this print statement to be 100% sure your custom method is being called.
+        # print("--- Executing Custom LLaVATrainer training_step ---")
+    
+        model.train()
+        inputs = self._prepare_inputs(inputs)
+    
+        with self.compute_loss_context_manager():
+            # The return_outputs=True flag is essential.
+            # It gives us the full output object from the model, not just the loss tensor.
+            loss, outputs = self.compute_loss(model, inputs, return_outputs=True)
+    
+        if self.args.n_gpu > 1:
+            loss = loss.mean()
+    
+        # --- START: Explicit Logging Logic ---
+        # We create a dictionary of logs and pass it to self.log()
+        # This is the standard Hugging Face Trainer way to log metrics.
+        logs: Dict[str, float] = {}
+    
+        # The loss returned by `training_step` is used for logging the training loss
+        logs["total_loss"] = loss.detach().item()
+    
+        # Check for our custom losses on the outputs object and add them to the logs
+        if hasattr(outputs, "region_loss"):
+            logs["region_loss"] = outputs.region_loss.item()
+        
+        # You can add more logs for other heads here in the future
+        # if hasattr(outputs, "distance_loss"):
+        #     logs["distance_loss"] = outputs.distance_loss.item()
+    
+        # Log only on the main process
+        if self.state.is_local_process_zero:
+            self.log(logs)
+        # --- END: Explicit Logging Logic ---
+    
+        self.accelerator.backward(loss)
+    
+        return loss.detach() / self.args.gradient_accumulation_steps
+
         
     # override the compute_loss for head losses
     # def compute_loss(self, model, inputs, return_outputs=False):
@@ -655,6 +701,8 @@ class LLaVATrainer(Trainer):
     #     })
         
     #     return total_loss if not return_outputs else (total_loss, outputs)
+
+
         
         
             

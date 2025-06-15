@@ -35,6 +35,7 @@ def add_dataset(dataset):
         warnings.warn(f"{dataset.dataset_name} already existed in DATASETS. Make sure the name is unique.")
     assert "+" not in dataset.dataset_name, "Dataset name cannot include symbol '+'."
     DATASETS.update({dataset.dataset_name: dataset})
+    print(f"---> Register {dataset.dataset_name} to DATASET dict")
 
 
 def register_datasets_mixtures():

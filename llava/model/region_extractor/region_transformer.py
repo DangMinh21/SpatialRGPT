@@ -143,8 +143,10 @@ class RegionFeatureExtractorConfig(PretrainedConfig):
         self.activation = activation
 
 class RegionFeatureExtractor(PreTrainedModel):
+    config_class = RegionFeatureExtractorConfig
+    
     def __init__(self, config: RegionFeatureExtractorConfig):
-        print(f"Init RegionFeatureExtractor: {config}")
+        print(f"--> Init RegionFeatureExtractor: {config}")
         super().__init__(config)
         self.dim = config.dim
         self.num_heads = config.num_heads
