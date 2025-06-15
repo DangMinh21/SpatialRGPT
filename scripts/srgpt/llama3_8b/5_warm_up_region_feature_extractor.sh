@@ -12,7 +12,7 @@ echo "JobID: $SLURM_JOB_ID | Full list: $worker_list"
 # OUTPUT of stage 2 script
 # STAGE2_PATH="./checkpoints/vila-siglip-llama3-8b-vila-v1.5-srgpt-pretrain"
 STAGE4_PATH="checkpoints/SpatialRGPT-VILA1.5-8B-SFT-SpatialWarehouse-merged" 
-OUTPUT_DIR="checkpoints/srgpt-enhancer-warmup"
+OUTPUT_DIR="checkpoints/srgpt-region-enhancer-warmup-full"
 
 
 # n_node=$SLURM_JOB_NUM_NODES
@@ -35,9 +35,9 @@ torchrun --nnodes=1 --nproc_per_node=1 --master_port=25001 \
     --enable_depth True \
     --region_extractor regiongpt \
     --tune_vision_tower False \
-    --tune_mm_projector False \
-    --tune_language_model False \
-    --tune_region_extractor False \
+    --tune_mm_projector True \
+    --tune_language_model True \
+    --tune_region_extractor True \
     --tune_region_enhancer True \
     --tune_region_classifier True \
     --mm_vision_select_layer -2 \
@@ -48,22 +48,22 @@ torchrun --nnodes=1 --nproc_per_node=1 --master_port=25001 \
     --output_dir $OUTPUT_DIR \
     --num_train_epochs 1 \
     --max_steps 10 \
-    --per_device_train_batch_size 2 \
+    --per_device_train_batch_size 1 \
     --per_device_eval_batch_size 4 \
     --gradient_accumulation_steps 2 \
     --evaluation_strategy "no" \
     --save_strategy "steps" \
-    --save_steps 1000 \
+    --save_steps 2000 \
     --save_total_limit 1 \
-    --learning_rate 2e-4 \
+    --learning_rate 2e-5 \
     --weight_decay 0. \
     --warmup_ratio 0.03 \
     --lr_scheduler_type "cosine" \
     --logging_steps 1 \
     --tf32 True \
-    --model_max_length 2048 \
+    --model_max_length 1024 \
     --gradient_checkpointing True \
-    --dataloader_num_workers 16 \
+    --dataloader_num_workers 8 \
     --lazy_preprocess True \
     --vflan_no_system_prompt True \
     --report_to wandb

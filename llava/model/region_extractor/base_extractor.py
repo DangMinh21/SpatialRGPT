@@ -155,7 +155,7 @@ class RegionExtractor(PreTrainedModel):
                 if mask_embed is None:
                     _mask_embeds.append(None)
                 else:
-                    _mask_embeds.append(mask_embed)
+                    _mask_embeds.append(connector(mask_embed))
                         
 
         elif self.config.region_extractor_type in ["duplicate", "duplicate_deconv"]:

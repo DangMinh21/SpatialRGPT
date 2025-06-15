@@ -1899,7 +1899,7 @@ class LazySpatialWarehouseDataset(Dataset):
             data_dict["depth"] = depth_tensor.unsqueeze(0)  # (1, C, H, W)
             
         # 6. region ids for region classification
-        if sources["region_label"]:
+        if sources["region_labels"]:
             label_ids = [self.cat_to_id[label] for label in sources["region_labels"]]
             data_dict['region_labels'] = torch.LongTensor(label_ids)
 
@@ -2002,9 +2002,6 @@ class DataCollatorForSupervisedDataset:
             labels=labels,
             attention_mask=input_ids.ne(self.tokenizer.pad_token_id),
         )
-        # add for compute region classification
-        if len(region_labels) > 0:
-            batch['region_labels'] = torch.cat(region_labels, dim=0)
 
         new_images = []
         new_depths = []
@@ -2038,6 +2035,11 @@ class DataCollatorForSupervisedDataset:
             batch["images"] = torch.zeros(1, 3, crop_size["height"], crop_size["width"])
             batch["depths"] = torch.zeros(1, 3, crop_size["height"], crop_size["width"])
             batch["masks"] = None
+
+        # add for compute region classification
+        if len(region_labels) > 0:
+            batch['region_labels'] = torch.cat(region_labels, dim=0)
+            
         return batch
 
 
@@ -2289,10 +2291,23 @@ def make_supervised_data_module(
     datasets_mixture.register_datasets_mixtures()
 
     # build Dataset
+    print(f"---> Build DatasetLoader ...")
     train_dataset = build_datasets(data_args, training_args=training_args, tokenizer=tokenizer, split="train")
     eval_dataset = build_datasets(data_args, training_args=training_args, tokenizer=tokenizer, split="eval")
 
+    # ======= debug DataLoader ======
+    # print(f"============== Debug DataLoader ============")
+    # print(f"Number of samples in train_dataset: {len(train_dataset)}")
+    # for idx in range(min(1, len(train_dataset))):  # Print first 3 samples
+    #     sample = train_dataset[idx]
+    #     print(f"\nSample {idx} include: {sample.keys()}")
+    #     print(f"{sample}")
+        
+    # import sys
+    # sys.exit()
+    # ===============================
     # build DataCollator
+    print(f"---> Build DataCollator ...")
     PROCESS_GROUP_MANAGER = get_pg_manager()
     if PROCESS_GROUP_MANAGER is None:
         data_collator = DataCollatorForSupervisedDataset(tokenizer=tokenizer, data_args=data_args)
@@ -2306,7 +2321,23 @@ def make_supervised_data_module(
             sp_degree=sp_degree,
             sp_rank=sp_rank,
         )
+    # ======= debug DataCollator ======
+    # print(f"============== Debug DataCollator ============")
+    # # 1. Sample a mini batch from the training dataset
+    # import random
+    # idx = [random.randint(0, len(train_dataset)) for _ in range(4)]
+    # sample_batch = [train_dataset[i] for i in idx]  # Change batch size as needed
+    
+    # # 2. Pass it through the collator
+    # batch = data_collator(sample_batch)
+    
+    # print(f"Sample 1 batch: \n{batch}")
 
+    # for input_ids in batch['input_ids']:
+    #     print(tokenizer.decode([t for t in input_ids.tolist() if t != -200]))
+    # import sys
+    # sys.exit()
+    # ===============================
     return dict(
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
@@ -2361,7 +2392,7 @@ def build_datasets(
                 image_folder = dataset.image_path
         # -------- added aicity_dataset -----------
         elif dataset_type == "spatial_warehouse":
-
+            print(f"Init LazySpatialWarehouseDataset ...")
             dataset_cls = LazySpatialWarehouseDataset
             image_folder = dataset.image_path  # This will be rgb_image_folder
         # -----------------------------------------

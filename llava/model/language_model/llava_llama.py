@@ -45,7 +45,6 @@ class LlavaLlamaConfig(LlavaConfig):
     
     def __init__(
         self,
-        # ... các tham số hiện tại ...
         # Thêm cấu hình mới cho region enhancer
         enable_region_enhancer: bool = True,
         region_enhancer_cfg: dict = {
@@ -64,7 +63,6 @@ class LlavaLlamaConfig(LlavaConfig):
         **kwargs
     ):
         super().__init__(
-            # ... các tham số hiện tại ...
             enable_region_enhancer=enable_region_enhancer,
             region_enhancer_cfg=region_enhancer_cfg,
             enable_region_classifier=enable_region_classifier,
@@ -76,6 +74,7 @@ class LlavaLlamaConfig(LlavaConfig):
 ## FIXME we will follow the convention to add a new class for CausalLM in the future
 class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
     config_class = LlavaLlamaConfig
+    print(f"--> LlavaLlamaConfig: {LlavaLlamaConfig}")
     main_input_name = "input_embeds"
     supports_gradient_checkpointing = True
 
@@ -140,6 +139,7 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
         labels: Optional[torch.LongTensor] = None,
         # Add for RegionHead
         region_labels: Optional[torch.LongTensor] = None,
+        # ------------------
         use_cache: Optional[bool] = None,
         output_attentions: Optional[bool] = None,
         output_hidden_states: Optional[bool] = None,
@@ -217,16 +217,26 @@ class LlavaLlamaModel(LlavaMetaModel, LlavaMetaForCausalLM, PreTrainedModel):
                 output_hidden_states=output_hidden_states,
                 return_dict=return_dict,
             )
-            # Compute region loss
-            if self.training and self.region_classifier_loss is not None and hasattr(self, "region_logits"):
-                
-                # region classification loss
-                region_logits = self.region_logits
-                region_loss = self.region_classifier_loss(region_logits, region_labels)
-                outputs.loss += 0.5 * region_loss
-                
-                # Clean up to free memory for the next iteration
-                del self.classifier_logits
+        # Compute region loss
+        if self.training and self.region_classifier_loss is not None and hasattr(self, "classifier_region_logits"):
+            
+            # region classification loss
+            region_logits = self.classifier_region_logits
+            # print(f"---> classifier region logits: {region_logits}")
+            # print(f"---> region labels: {region_labels}")
+            region_loss = self.region_classifier_loss(region_logits, region_labels)
+            outputs.region_loss = region_loss.detach()
+            # print(f"---> region_loss: {region_loss}")
+            # print(f"---> llm_loss: {outputs.loss}")
+            
+            #    The weight (e.g., 0.5) is a hyperparameter you can tune.
+            total_loss = outputs.loss + 0.5 * region_loss
+            
+            # 3. Overwrite the main loss with the new combined loss for backpropagation.
+            outputs.loss = total_loss
+            # print(f"---> total_loss: {outputs.loss}")
+            # Clean up to free memory for the next iteration
+            del self.classifier_region_logits
 
         if dpo_forward:
             return outputs.logits, new_labels
