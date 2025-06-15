@@ -15,7 +15,7 @@ captioner/
 hostfile
 *_dev.py
 *_dev.sh
-*.ipynb
+# *.ipynb
 
 
 # Python
@@ -90,4 +90,5 @@ datasets/OpenSpatialDataset/images
 datasets/OpenSpatialDataset/metadata
 datasets/OpenSpatialDataset/splits
 datasets/data_prepare
+Debug_dataset_dataloader.txt
 
